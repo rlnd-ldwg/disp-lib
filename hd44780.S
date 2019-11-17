@@ -11,9 +11,10 @@
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 PD0 PD1 PD2 PD3 PD4 PD5 PD6 PD7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 Gnd Gnd Gnd Gnd PD0 PD1 PD2 PD3
 
-.version "1.03alpha 2019/11/15"
+.version "1.05 2019/11/16"
 
 .set __4BIT__, true
+; if set the upper 4 bits (4-7) of the specified port will be used
 .set __USE_HIGH_NIBBLE__, true
 ;.set __ATMEGA8__, true
 .equ __F_CPU, 16000000
@@ -50,7 +51,7 @@
     .equ _DDRD, 0x11
     .equ _SFIOR, 0x30 ; special function I/O register
     .equ _PUD, 0x02   ; pull up disable
-.else
+.else                   ; ATMega 328, ATMega32u4
     .equ _PORTB, 0x05
     .equ _PINB, 0x03
     .equ _DDRB, 0x04
@@ -349,7 +350,7 @@ textEnd:
 .endfunc                ; printLCD
 
 
-
+; old stuff
 ; ##################################################
 ; function void LCD_CursorOn(char blink)
 ; parameters: blink => r24

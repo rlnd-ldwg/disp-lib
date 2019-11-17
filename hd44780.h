@@ -1,4 +1,3 @@
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,7 +38,3 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
-class HD44870 {
-    void initLCD(void);
-};

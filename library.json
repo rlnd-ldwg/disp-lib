@@ -2,7 +2,7 @@
   "name": "HD44870",
   "keywords": "hd44870, lcd, display",
   "description": "Display library for HD44870 kompatible displays",
-  "version": "1.0.3"
+  "version": "1.0.5",
   "repository":
   {
     "type": "git",
