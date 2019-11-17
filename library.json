@@ -1,7 +1,8 @@
 {
-  "name": "DS1307RTC",
-  "keywords": "i2c, rtc, time, clock",
-  "description": "DS1307 RTC (Real-Time-Clock)",
+  "name": "HD44870",
+  "keywords": "hd44870, lcd, display",
+  "description": "Display library for HD44870 kompatible displays",
+  "version": "1.0.3"
   "repository":
   {
     "type": "git",
