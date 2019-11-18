@@ -16,4 +16,7 @@
     "url": "https://github.com/rlnd-ldwg/disp-lib.git"
   },
   "platforms": "atmelavr"
+  {
+    "examples": "examples/*.c"
+}
 }

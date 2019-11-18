@@ -18,5 +18,4 @@ int main (void) {
     sprintf (line, "Int: %d float: %2.2f", x, y);
     printLCD(line);
     mswait(10000);
-    while (1) { };
 }
