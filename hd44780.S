@@ -190,8 +190,8 @@ libversion:
     ldi r24, lo8(Version)
     ldi r25, hi8(Version)
     rcall printLCD
-    ldi r24, 0x00        ; wait 5000ms
-    ldi r25, 0x03
+    ldi r24, 0xd0       ; wait 2000ms
+    ldi r25, 0x07
     rcall mswait
     clr r24
     ldi r22, 0x01
@@ -202,9 +202,12 @@ libversion:
     ldi r24, lo8(Mode)
     ldi r25, hi8(Mode)
     rcall printLCD
-    ldi r24, 0x00        ; wait 5000ms
-    ldi r25, 0x03
+    ldi r24, 0xd0       ; wait 2000ms
+    ldi r25, 0x07
     rcall mswait
+    clr r24
+    ldi r22, 0x01
+    rcall writeLCD
     pop r22
     pop r24
     pop r25

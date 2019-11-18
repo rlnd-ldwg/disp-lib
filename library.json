@@ -1,6 +1,13 @@
 {
   "name": "HD44870",
   "keywords": "hd44870, lcd, display",
+  "authors": [
+    {
+      "name": "Roland Ludwig",
+      "email": "roland.ludwig.22@gmail.com",
+      "maintainer": true
+    }
+  ],
   "description": "Display library for HD44870 kompatible displays",
   "version": "1.0.5",
   "repository":
