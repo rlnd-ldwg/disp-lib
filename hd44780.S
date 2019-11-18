@@ -11,7 +11,7 @@
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 PD0 PD1 PD2 PD3 PD4 PD5 PD6 PD7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 Gnd Gnd Gnd Gnd PD0 PD1 PD2 PD3
 
-.version "1.05 2019/11/16"
+.version "1.06 2019/11/18"
 
 .set __4BIT__, true
 ; if set the upper 4 bits (4-7) of the specified port will be used
@@ -106,7 +106,7 @@
 .data
 
 Version:
-    .asciz "1.05\xE0 2019/11/16"
+    .asciz "1.06\xE0 2019/11/18"
 Mode:
 .ifdef __4BIT__
     .ifndef __USE_HIGH_NIBBLE__

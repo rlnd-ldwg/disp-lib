@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <hd44780.h>
 
 int main (void) {
@@ -9,13 +10,13 @@ int main (void) {
     initLCD();
     // show library version and mode
     libversion();
-    
+
     printLCD("Hello World!");
-    delay (10000);
+    mswait(10000);
     writeLCD(_CTRL, _HOME);     // set cursor to home
     writeLCD(_CTRL, _CLEAR);    // clear Display
     sprintf (line, "Int: %d float: %2.2f", x, y);
     printLCD(line);
-    delay(10000);
-    while true { };
+    mswait(10000);
+    while (1) { };
 }
