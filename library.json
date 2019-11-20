@@ -1,6 +1,6 @@
 {
-  "name": "HD44870",
-  "keywords": "hd44870, lcd, display",
+  "name": "HD44780",
+  "keywords": "hd44780, lcd, display",
   "authors": [
     {
       "name": "Roland Ludwig",
@@ -8,7 +8,7 @@
       "maintainer": true
     }
   ],
-  "description": "Display library for HD44870 kompatible displays",
+  "description": "Display library for HD44780 kompatible displays",
   "version": "1.0.6",
   "repository":
   {

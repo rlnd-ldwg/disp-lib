@@ -1,8 +1,24 @@
 ; display library for HD44780 compatible LCD's
-; author Roland Ludwig
-; initial version 2019/09/10
-; 2019/10/31 4 bit version ok
-; 2019/11/01 version 1.0 released
+; copyright (c) Roland Ludwig 2012
+;
+; The library is free software; you can redistribute it and/or
+; modify it under the terms of the GNU Lesser General Public
+; License as published by the Free Software Foundation; either
+; version 2.1 of the License, or (at your option) any later version.
+;
+; This library is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; Lesser General Public License for more details.
+;
+; You should have received a copy of the GNU Lesser General Public
+; License along with this library; if not, write to the Free Software
+; Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+;
+; 2012-04-05 initial version
+; 2019-09-10 redesign
+; 2019-10-31 4 bit version ok
+; 2019-11-01 version 1.0 released
 ; 2019-11-15 using upper 4 bits in 4 bit mode
 
 ; example LCD pin assignment Philips LTN211 (8bit/4bit)
@@ -11,32 +27,43 @@
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 PD0 PD1 PD2 PD3 PD4 PD5 PD6 PD7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 Gnd Gnd Gnd Gnd PD0 PD1 PD2 PD3
 
-.version "1.06 2019/11/18"
+.version "1.06 2019-11-18"
 
-.set __4BIT__, true
-; if set the upper 4 bits (4-7) of the specified port will be used
-.set __USE_HIGH_NIBBLE__, true
+.set __4BIT__, true				; if set the 4-bit interface of the display will be used
+.set __USE_4TO7__, true			; if set the upper 4 bits (4-7) of the specified port will be used
+;.set __3WIRE__					; if set the 3-wire interface (74HCT164) will be used
+
+.ifdef __4BIT__
+    .warning "4-bit version: pins D0-D3 need pulldown to ground"
+.endif
+.ifdef __3WIRE__
+	.warning "3-wire version: no display reading possible"
+.endif
+
 ;.set __ATMEGA8__, true
 .equ __F_CPU, 16000000
 .equ _CTRL, 0
 .equ _DATA, 1
 
 ; define control bits (PORTC)
-;.equ _RS, 0 ; register select: data=0, control=1
-;.equ _RW, 1 ; read/write: read=0, write=1
-;.equ _EN, 2 ; enable: active high
-.equ _RS, 0 ; register select: data=0, control=1
-.equ _RW, 1 ; read/write: read=0, write=1
-.equ _EN, 2 ; enable: active high
-; define busy flag (PORTD)
-.equ _BUSY, 7
+;.equ _RS, 0	; register select: data=0, control=1
+;.equ _RW, 1	; read/write: read=0, write=1
+;.equ _EN, 2	; enable: active high
+.equ _RS, 0		; register select: data=0, control=1
+.equ _RW, 1		; read/write: read=0, write=1
+.equ _EN, 2		; enable: active high
 
 ; define pattern for control pins
 .equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN)
 
-.ifdef __4BIT__
-    .warning "4 bit version: pins D0-D3 need pulldown to ground"
-.endif
+; for 3-wire interface (actually unused)
+.equ _DS, 0     ; serial data
+.equ _CL, 1     ; shift register clock
+.equ _RS2, 0
+.equ _LED, 2
+
+; define busy flag (PORTD)
+.equ _BUSY, 7
 
 ; ATMEGA8 I/O register
 .ifdef __ATMEGA8__
@@ -77,14 +104,8 @@
 .equ CtrlWrite, _PORTB
 .equ CtrlRead, _PINB
 
-; actually not unused
-.equ _DS, 0     ; serial data
-.equ _CL, 1     ; shift register clock
-.equ _RS2, 0
-.equ _LED, 2
-
 .ifdef __4BIT__
-    .ifndef __USE_HIGH_NIBBLE__
+    .ifndef __USE_4TO7__
         .equ DataOut, 0x0f                     ; switch port to output
         .equ DataIn,  0xf0                     ; switch port to input
     .else
@@ -106,10 +127,10 @@
 .data
 
 Version:
-    .asciz "1.06\xE0 2019/11/18"
+    .asciz "1.06\xE0 2019-11-18"
 Mode:
 .ifdef __4BIT__
-    .ifndef __USE_HIGH_NIBBLE__
+    .ifndef __USE_4TO7__
         .asciz "4 bit mode (0-3)"
     .else
         .asciz "4 bit mode (4-7)"
@@ -246,7 +267,7 @@ selectCtrlW:
     in r25, DataWrite
     andi r25, DataIn    ; mask unused bits
     mov r26, r22        ; data => r26
-.ifndef __USE_HIGH_NIBBLE__
+.ifndef __USE_4TO7__
     swap r26            ; swap higher nibble to bit 0-3
 .endif
     andi r26, DataOut   ; mask higher nibble
@@ -258,7 +279,7 @@ selectCtrlW:
     cbi CtrlWrite, _EN
 
     rcall wait          ; -> 8 cycles min. 1000ns enable cycle time min
-.ifdef __USE_HIGH_NIBBLE__
+.ifdef __USE_4TO7__
     swap r22            ; lower nibble -> to bit 4-7
 .endif
     andi r22, DataOut   ; mask lower nibble
@@ -312,7 +333,7 @@ selectCtrlR:
     in r25, DataRead    ; lower nibble
     cbi CtrlWrite, _EN
     rcall wait
-.ifndef __USE_HIGH_NIBBLE__
+.ifndef __USE_4TO7__
     swap r24            ; bits 0-3 used -> swap r24 to higher nibble
 .else
     swap r25            ; bits 4-7 used -> swap r25 to lower nibble
