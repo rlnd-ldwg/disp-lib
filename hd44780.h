@@ -1,7 +1,8 @@
-; display library for HD44780 compatible LCD's
-; copyright (c) Roland Ludwig 2012
-;
-; Version 1.06 (2019-11-18)
+/*  display library for HD44780 compatible LCD's
+    copyright (c) Roland Ludwig 2012
+
+    Version 1.06 (2019-11-18)
+*/
 
 #ifndef HD44780_h
 #define HD44780_h

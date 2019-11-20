@@ -194,7 +194,7 @@ initLCD:
 .global libinfo
 .func libinfo           ; void libinfo(void)
 
-libversion:
+libinfo:
     push r25
     push r24
     push r22
