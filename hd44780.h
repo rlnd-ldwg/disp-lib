@@ -11,12 +11,12 @@ extern "C" {
 #endif
 
 // register select value
-#define _CTRL 0	
+#define _CTRL 0
 #define _DATA 1
 
 // LCD control values
 #define _CLEAR  0b00000001		// clear display
-#define _HOME   0b00000010		// cursor home 
+#define _HOME   0b00000010		// cursor home
 #define _DPCTRL 0b00001000      // display control
 #define _DPON   0b00000100      // display on/off
 #define _CUON   0b00000010      // cursor on/off
@@ -25,7 +25,7 @@ extern "C" {
 #define _DDRAM  0b10000000		// display RAM address
 
 extern void initLCD(void);
-extern void libversion(void);
+extern void libinfo(void);
 extern void writeLCD(const char rs, char data);
 extern void printLCD(const char *text);
 extern char readLCD(char rs);
@@ -36,7 +36,7 @@ extern void LCD_SetCursor(char, char);
 extern void LCD_Off(void);
 extern void LCD_On(void);
 extern void mswait(int);
-	
+
 /* old deprecated functions
     extern void InitLCD(void);
     extern void LCD_SendData(char, char);

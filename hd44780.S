@@ -17,9 +17,9 @@
 ;
 ; 2012-04-05 initial version
 ; 2019-09-10 redesign
-; 2019-10-31 4 bit version ok
-; 2019-11-01 version 1.0 released
-; 2019-11-15 using upper 4 bits in 4 bit mode
+; 2019-10-31 stable 4-bit version
+; 2019-11-01 version 1.00 released
+; 2019-11-15 possible usage of the upper 4 bits in 4 bit mode
 
 ; example LCD pin assignment Philips LTN211 (8bit/4bit)
 ; LCD pin     : 1   2   3   4   5   6   7   8   9   10  11  12  13  14
@@ -27,11 +27,11 @@
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 PD0 PD1 PD2 PD3 PD4 PD5 PD6 PD7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 Gnd Gnd Gnd Gnd PD0 PD1 PD2 PD3
 
-.version "1.06 2019-11-18"
+.version "1.07 2019-11-20"
 
-.set __4BIT__, true				; if set the 4-bit interface of the display will be used
-.set __USE_4TO7__, true			; if set the upper 4 bits (4-7) of the specified port will be used
-;.set __3WIRE__					; if set the 3-wire interface (74HCT164) will be used
+.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
+.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
+;.set __3WIRE__                 ; if set the 3-wire interface (74HCT164) will be used
 
 .ifdef __4BIT__
     .warning "4-bit version: pins D0-D3 need pulldown to ground"
@@ -45,24 +45,19 @@
 .equ _CTRL, 0
 .equ _DATA, 1
 
-; define control bits (PORTC)
-;.equ _RS, 0	; register select: data=0, control=1
-;.equ _RW, 1	; read/write: read=0, write=1
-;.equ _EN, 2	; enable: active high
-.equ _RS, 0		; register select: data=0, control=1
-.equ _RW, 1		; read/write: read=0, write=1
-.equ _EN, 2		; enable: active high
+; define control bits
+.equ _RS, 0     ; register select: data=0, control=1
+.equ _RW, 1     ; read/write: read=0, write=1
+.equ _EN, 2     ; enable: active high
 
-; define pattern for control pins
+; pattern for DDR control port
 .equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN)
 
 ; for 3-wire interface (actually unused)
-.equ _DS, 0     ; serial data
-.equ _CL, 1     ; shift register clock
-.equ _RS2, 0
-.equ _LED, 2
+.equ _SD, _RS     ; serial data
+.equ _SC, 1     ; shift register clock
 
-; define busy flag (PORTD)
+; displays busy flag
 .equ _BUSY, 7
 
 ; ATMEGA8 I/O register
@@ -76,8 +71,8 @@
     .equ _PORTD, 0x12
     .equ _PIND, 0x10
     .equ _DDRD, 0x11
-    .equ _SFIOR, 0x30 ; special function I/O register
-    .equ _PUD, 0x02   ; pull up disable
+    .equ _SFIOR, 0x30   ; special function I/O register
+    .equ _PUD, 0x02     ; pull up disable
 .else                   ; ATMega 328, ATMega32u4
     .equ _PORTB, 0x05
     .equ _PINB, 0x03
@@ -104,30 +99,31 @@
 .equ CtrlWrite, _PORTB
 .equ CtrlRead, _PINB
 
+; pattern for DDR data port
 .ifdef __4BIT__
     .ifndef __USE_4TO7__
-        .equ DataOut, 0x0f                     ; switch port to output
-        .equ DataIn,  0xf0                     ; switch port to input
+        .equ DataOut, 0x0f
+        .equ DataIn,  0xf0
     .else
-        .equ DataOut, 0xf0                     ; switch port to output
-        .equ DataIn,  0x0f                     ; switch port to input
+        .equ DataOut, 0xf0
+        .equ DataIn,  0x0f
     .endif
 .else
-    .equ DataOut, 0xff                     ; switch port to output
-    .equ DataIn,  0x00                     ; switch port to input
+    .equ DataOut, 0xff
+    .equ DataIn,  0x00
 .endif
 
 ;calculate counter for delay loop
-.ifndef __F_CPU                            ; if not set
+    .ifndef __F_CPU                         ; if not set
     .equ __F_CPU, 12000000                  ; set to 12MHz systemclock
 .endif
-.equ Cfactor, 2                            ; correction factor
-.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor ; loop counter
+.equ Cfactor, 2                             ; correction factor
+.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
 
 .data
 
 Version:
-    .asciz "1.06\xE0 2019-11-18"
+    .asciz "1.07(2019-11-20)"
 Mode:
 .ifdef __4BIT__
     .ifndef __USE_4TO7__
@@ -141,13 +137,13 @@ Mode:
 
 InitSequence:
 .ifdef __4BIT__
-    .byte 0x28, 0x01, 0x0c, 0x80 ; 4-bit mode|clear display|display on, cursor off, cursor doesn't blink|DD-RAM address=0
+    .byte 0x28, 0x01, 0x0c, 0x80    ; 4-bit mode|clear display|display on, cursor off, cursor doesn't blink|DD-RAM address=0
 .else
-    .byte 0x38, 0x01, 0x0c, 0x80 ; 8-bit mode|clear display|display on, cursor off, cursor doesn't blink|DD-RAM address=0
+    .byte 0x38, 0x01, 0x0c, 0x80    ; 8-bit mode|clear display|display on, cursor off, cursor doesn't blink|DD-RAM address=0
 .endif
 
 LineAddress:
-    .byte 0x00, 0x40, 0x10, 0x50  ; line # 1, 2, 3, 4
+    .byte 0x00, 0x40, 0x10, 0x50    ; line # 1, 2, 3, 4
 
 .text
 
@@ -181,7 +177,7 @@ initLCD:
     ldi r22, 0x30       ; first init sequence
     rcall writeLCD
 
-    lds r22, InitSequence ; send initialization sequence
+    lds r22, InitSequence   ; send initialization sequence
     rcall writeLCD
     lds r22, InitSequence+1
     rcall writeLCD
@@ -195,8 +191,8 @@ initLCD:
     ret
 .endfunc                ; initLCD
 
-.global libversion
-.func libversion        ; void libversion(void)
+.global libinfo
+.func libinfo           ; void libinfo(void)
 
 libversion:
     push r25
@@ -233,7 +229,7 @@ libversion:
     pop r24
     pop r25
     ret
-.endfunc                ; libversion
+.endfunc                ; libinfo
 
 .global writeLCD
 .func writeLCD          ; void writeLCD (char rs -> r24, char data -> r22)
@@ -373,8 +369,36 @@ textEnd:
     ret
 .endfunc                ; printLCD
 
+.local wait
+wait:
+;   rcall wait          ; 3
+    ret                 ; 4
+; 10 cyles * 50ns (at 20MHz) equates 500ns
 
-; old stuff
+.global mswait          ; function mswait(uint16_t ms)
+.func mswait            ; void mswait (const int ms -> r24:r25)
+
+mswait:
+        push r26        ; save register
+        push r27
+l3:
+        sbiw r24, 1     ; decrement double register
+        brcc l1         ; wait 1 ms
+        pop r27         ; restore register
+        pop r26
+        ret
+l1:
+        nop
+        ldi     r26, lo8(Dloop)
+        ldi     r27, hi8(Dloop)
+l2:
+        sbiw    r26, 1
+        brne    l2
+        rjmp l3
+.end                    ; mswait
+
+;
+; old stuff, to be reviewed
 ; ##################################################
 ; function void LCD_CursorOn(char blink)
 ; parameters: blink => r24
@@ -486,41 +510,3 @@ LCD_On:
         pop r24
         pop r22
         ret
-
-; ##################################################
-; function void wait (void)
-; parameters: none
-; ##################################################
-
-.local wait
-wait:
-;   rcall wait  ; 3
-    ret         ; 4
-;               10 cyles * 50ns (at 20MHz) equates 500ns
-
-; ##################################################
-; function void mswait (uint16_t ms)
-; parameters: ms r24:r25
-; ##################################################
-
-.global mswait      ; function mswait(uint16_t ms)
-
-mswait:
-        push r26    ; save register
-        push r27
-l3:
-        sbiw r24, 1 ; decrement double register
-        brcc l1     ; wait 1 ms
-        pop r27     ; restore register
-        pop r26
-        ret
-l1:
-        nop
-        ldi     r26, lo8(Dloop)
-        ldi     r27, hi8(Dloop)
-l2:
-        sbiw    r26, 1
-        brne    l2
-        rjmp l3
-
-.end
