@@ -1,6 +1,6 @@
 {
   "name": "HD44780",
-  "keywords": "hd44780, lcd, display",
+  "keywords": "hd44780, ks0066, lcd, display",
   "authors": [
     {
       "name": "Roland Ludwig",
