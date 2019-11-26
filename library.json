@@ -1,6 +1,6 @@
 {
-  "name": "HD44780",
-  "keywords": "hd44780, ks0066, lcd, display",
+  "name": "LCD/LED library",
+  "keywords": "hd44780, ks0066, max7221, lcd, led, display",
   "authors": [
     {
       "name": "Roland Ludwig",
@@ -15,6 +15,5 @@
     "type": "git",
     "url": "url": "https://github.com/rlnd-ldwg/disp-lib.git"
   },
-  "platforms": "atmelavr",
-  "examples": "examples/*.c"
+  "platforms": "atmelavr"
 }
