@@ -29,19 +29,22 @@
 
 .version "1.07 2019-11-20"
 
-.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
-.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
-;.set __3WIRE__                 ; if set the 3-wire interface (74HCT164) will be used
+;.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
+;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
+.set __3WIRE__, true                 ; if set the 3-wire interface (74HCT164) will be used
 
 .ifdef __4BIT__
     .warning "4-bit version: pins D0-D3 need pulldown to ground"
+	.ifdef __3WIRE__
+		.error "you can't use 3-wire in combination with 4-bit interface"
+	.endif
 .endif
 .ifdef __3WIRE__
 	.warning "3-wire version: no display reading possible"
 .endif
 
-;.set __ATMEGA8__, true
-.equ __F_CPU, 16000000
+.set __ATMEGA8__, true
+.equ __F_CPU, 12000000
 .equ _CTRL, 0
 .equ _DATA, 1
 
@@ -50,12 +53,12 @@
 .equ _RW, 1     ; read/write: read=0, write=1
 .equ _EN, 2     ; enable: active high
 
-; pattern for DDR control port
-.equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN)
+; for 3-wire interface (using 8-bit shift register 74xx164)
+.equ _SD, 1   ; serial data (shared with lcd register select)
+.equ _SC, 3     ; serial clock
 
-; for 3-wire interface (actually unused)
-.equ _SD, _RS     ; serial data
-.equ _SC, 1     ; shift register clock
+; pattern for DDR control port
+.equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN | 1<<_SC)
 
 ; displays busy flag
 .equ _BUSY, 7
@@ -92,12 +95,12 @@
 .endif
 
 ; for better readability
-.equ DataDDR, _DDRD
-.equ DataWrite, _PORTD
-.equ DataRead, _PIND
-.equ CtrlDDR, _DDRB
-.equ CtrlWrite, _PORTB
-.equ CtrlRead, _PINB
+.equ DataDDR, _DDRC
+.equ DataWrite, _PORTC
+.equ DataRead, _PINC
+.equ CtrlDDR, _DDRC
+.equ CtrlWrite, _PORTC
+.equ CtrlRead, _PINC
 
 ; pattern for DDR data port
 .ifdef __4BIT__
@@ -114,11 +117,11 @@
 .endif
 
 ;calculate counter for delay loop
-    .ifndef __F_CPU                         ; if not set
-    .equ __F_CPU, 12000000                  ; set to 12MHz systemclock
+.ifndef __F_CPU									; if not set
+    .equ __F_CPU, 12000000                  	; set to 12MHz systemclock
 .endif
-.equ Cfactor, 2                             ; correction factor
-.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
+.equ Cfactor, 2                             	; correction factor
+.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  	; loop counter
 
 .data
 
@@ -132,7 +135,11 @@ Mode:
         .asciz "4 bit mode (4-7)"
     .endif
 .else
-    .asciz "8 bit mode"
+    .ifdef __3WIRE__
+		.asciz "3 wire interface"
+	.else
+		.asciz "8 bit mode"
+	.endif
 .endif
 
 InitSequence:
@@ -237,6 +244,7 @@ libinfo:
 writeLCD:
     push r26            ; save register
     push r25
+.ifndef __3WIRE__
     push r24
 
 wait4Disp:
@@ -245,7 +253,7 @@ wait4Disp:
     sbrc r24, _BUSY     ; wait until display is ready
     rjmp wait4Disp
     pop r24
-
+.endif
     tst r24             ; control or data register
     brne selectDataW
     cbi CtrlWrite, _RS
@@ -287,7 +295,28 @@ selectCtrlW:
     cbi CtrlWrite, _EN
 .else ; write 8 bit data
     sbi CtrlWrite, _EN
+.ifdef __3WIRE__
+;****************************************************************************
+; Daten ins Schieberegister
+;        sbi DataWrite, _SC  ; clock to high
+        ldi r26, 8          ; 8bit zu schieben
+.shiftloop:
+        cbi DataWrite, _SC  ; clock to low
+        lsl r22             ; 1. bit => carry
+        brcc .bitclr        ; carry = 0 => 0 ins Schieberegister
+        sbi DataWrite, _SD  ; 1 schieben
+        rjmp .nxtbit
+.bitclr:
+        cbi DataWrite, _SD  ; 0 schieben
+.nxtbit:
+rcall wait
+        sbi DataWrite, _SC  ; clock to high
+        dec r26
+        brne .shiftloop     ; alle 8 bit
+;****************************************************************************
+.else
     out DataWrite, r22
+.endif
     rcall wait
     cbi CtrlWrite, _EN
 .endif
@@ -396,6 +425,30 @@ l2:
         brne    l2
         rjmp l3
 .end                    ; mswait
+
+
+; #ifndef XTAL
+; #define XTAL                        16000000                // must be changed
+; #endif
+
+; #define DELAY_ONE_MILLISECOND       (XTAL / 4 / 1000)       // must > 8
+
+; // void mswait(uint16_t ms);
+; // wait some milliseconds, XTAL must be correct defined
+
+        ; .global glcdWait                // used T0,T1 stack 0
+; mswait:
+        ; sbiw    r24, 1                                   // 2
+        ; brcc    mswait1                               // 2
+        ; ret                                             // 2 -2 = 0 for no branch in both loops
+; mswait1:
+        ; nop
+        ; ldi     r26, lo8(DELAY_ONE_MILLISECOND -4)       // 1
+        ; ldi     r27, hi8(DELAY_ONE_MILLISECOND -4)       // 1
+; mswait2:
+        ; sbiw    r26, 1                                   // 2
+        ; brne    mswait2                               // 2 = 4, = 3 for last loop
+        ; rjmp    mswait                                // 2 = 8
 
 ;
 ; old stuff, to be reviewed
