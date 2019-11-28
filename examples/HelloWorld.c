@@ -9,7 +9,7 @@ int main (void) {
 
     initLCD();
     // show library version and mode
-    libversion();
+    libinfo();
 
     printLCD("Hello World!");
     mswait(10000);
