@@ -1,5 +1,5 @@
 ; display library for HD44780 compatible LCD's
-; copyright (c) Roland Ludwig 2012
+; copyright (c) 2012 Roland Ludwig
 ;
 ; The library is free software; you can redistribute it and/or
 ; modify it under the terms of the GNU Lesser General Public
