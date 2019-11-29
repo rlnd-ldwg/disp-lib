@@ -1,6 +1,6 @@
 {
   "name": "LCD/LED library",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "keywords": "hd44780, ks0066, max7221, lcd, led, display",
   "description": "Display library for HD44780 kompatible displays",
   "repository":
