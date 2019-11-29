@@ -1,33 +1,32 @@
 ; display library for HD44780 compatible LCD's
 ; copyright (c) 2012 Roland Ludwig
 ;
-; The library is free software; you can redistribute it and/or
-; modify it under the terms of the GNU Lesser General Public
-; License as published by the Free Software Foundation; either
-; version 2.1 of the License, or (at your option) any later version.
-;
-; This library is distributed in the hope that it will be useful,
+; This program is free software; you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 2 of the License, or
+; (at your option) any later version.
+
+; This program is distributed in the hope that it will be useful,
 ; but WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; Lesser General Public License for more details.
-;
-; You should have received a copy of the GNU Lesser General Public
-; License along with this library; if not, write to the Free Software
-; Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+
+; You should have received a copy of the GNU General Public License along
+; with this program; if not, write to the Free Software Foundation, Inc.,
+; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ;
 ; 2012-04-05 initial version
 ; 2019-09-10 redesign
 ; 2019-10-31 stable 4-bit version
-; 2019-11-01 version 1.00 released
+; 2019-11-01 version 1.0.0 released
 ; 2019-11-15 possible usage of the upper 4 bits in 4 bit mode
-
 ; example LCD pin assignment Philips LTN211 (8bit/4bit)
 ; LCD pin     : 1   2   3   4   5   6   7   8   9   10  11  12  13  14
 ; Description : Vss Vdd Vo  RS  R/W E   D0  D1  D2  D3  D4  D5  D6  D7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 PD0 PD1 PD2 PD3 PD4 PD5 PD6 PD7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 Gnd Gnd Gnd Gnd PD0 PD1 PD2 PD3
 
-.version "1.07 2019-11-20"
+.version "1.1.0 2019-11-28"
 
 ;.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
@@ -51,14 +50,15 @@
 ; define control bits
 .equ _RS, 0     ; register select: data=0, control=1
 .equ _RW, 1     ; read/write: read=0, write=1
-.equ _EN, 2     ; enable: active high
+.equ _EN, 1     ; enable: active high
 
 ; for 3-wire interface (using 8-bit shift register 74xx164)
-.equ _SD, 1   ; serial data (shared with lcd register select)
-.equ _SC, 3     ; serial clock
+.equ _SD, _RS   ; serial data (shared with lcd register select)
+.equ _SC, 2     ; serial clock
 
 ; pattern for DDR control port
-.equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN | 1<<_SC)
+;.equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN | 1<<_SC)
+.equ CtrlOut, (1<<_RS | 1<<_EN | 1<<_SC)
 
 ; displays busy flag
 .equ _BUSY, 7
@@ -294,7 +294,7 @@ selectCtrlW:
     rcall wait
     cbi CtrlWrite, _EN
 .else ; write 8 bit data
-    sbi CtrlWrite, _EN
+
 .ifdef __3WIRE__
 ;****************************************************************************
 ; Daten ins Schieberegister
@@ -309,19 +309,30 @@ selectCtrlW:
 .bitclr:
         cbi DataWrite, _SD  ; 0 schieben
 .nxtbit:
-rcall wait
+;rcall wait
         sbi DataWrite, _SC  ; clock to high
         dec r26
         brne .shiftloop     ; alle 8 bit
+
+        tst r24             ; control or data register
+        brne select2DataW
+        cbi CtrlWrite, _RS
+        rjmp select2CtrlW
+    select2DataW:
+        sbi CtrlWrite, _RS
+    select2CtrlW:
 ;****************************************************************************
 .else
     out DataWrite, r22
 .endif
-    rcall wait
+    sbi CtrlWrite, _EN
+;    rcall wait
     cbi CtrlWrite, _EN
 .endif
+    ldi r24, 2
+    clr r25
+    rcall mswait
 
-    rcall wait
     pop r25             ; restore register
     pop r26
     ret
