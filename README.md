@@ -1,5 +1,5 @@
 # display-library
-Small fast library written in avr assembler
+Small fast library written in avr assembler  
 Can be used with standard c/c++ compilers, ARDUINO or pure assembler programming
 * for LCD HD44780 compatible (8/4 bit interface)
 * for LED MAX7221 driver (not yet implemented)
