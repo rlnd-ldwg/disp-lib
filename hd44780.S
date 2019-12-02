@@ -20,26 +20,29 @@
 ; 2019-10-31 stable 4-bit version
 ; 2019-11-01 version 1.0.0 released
 ; 2019-11-15 possible usage of the upper 4 bits in 4 bit mode
+; 2019-11-29 version 1.1.1 released (3-wire interface)
+;
 ; example LCD pin assignment Philips LTN211 (8bit/4bit)
 ; LCD pin     : 1   2   3   4   5   6   7   8   9   10  11  12  13  14
 ; Description : Vss Vdd Vo  RS  R/W E   D0  D1  D2  D3  D4  D5  D6  D7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 PD0 PD1 PD2 PD3 PD4 PD5 PD6 PD7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 Gnd Gnd Gnd Gnd PD0 PD1 PD2 PD3
 
-.version "1.1.0 2019-11-28"
+.version "1.1.1 2019-11-29"
 
 ;.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
-.set __3WIRE__, true                 ; if set the 3-wire interface (74HCT164) will be used
+.set __3WIRE__, true            ; if set the 3-wire interface (74HCT164) will be used
 
 .ifdef __4BIT__
     .warning "4-bit version: pins D0-D3 need pulldown to ground"
-	.ifdef __3WIRE__
-		.error "you can't use 3-wire in combination with 4-bit interface"
-	.endif
+  .ifdef __3WIRE__
+    .error "you can't use 3-wire in combination with 4-bit interface"
+  .endif
 .endif
+
 .ifdef __3WIRE__
-	.warning "3-wire version: no display reading possible"
+    .warning "3-wire version: no display reading possible"
 .endif
 
 .set __ATMEGA8__, true
@@ -48,13 +51,13 @@
 .equ _DATA, 1
 
 ; define control bits
-.equ _RS, 0     ; register select: data=0, control=1
-.equ _RW, 1     ; read/write: read=0, write=1
-.equ _EN, 1     ; enable: active high
+.equ _RS, 3     ; register select: data=0, control=1
+.equ _RW, 5     ; read/write: read=0, write=1
+.equ _EN, 4     ; enable: active high
 
 ; for 3-wire interface (using 8-bit shift register 74xx164)
 .equ _SD, _RS   ; serial data (shared with lcd register select)
-.equ _SC, 2     ; serial clock
+.equ _SC, 5     ; serial clock
 
 ; pattern for DDR control port
 ;.equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN | 1<<_SC)
@@ -95,51 +98,52 @@
 .endif
 
 ; for better readability
-.equ DataDDR, _DDRC
-.equ DataWrite, _PORTC
-.equ DataRead, _PINC
+.equ DataDDR, _DDRD
+.equ DataWrite, _PORTD
+.equ DataRead, _PIND
 .equ CtrlDDR, _DDRC
 .equ CtrlWrite, _PORTC
 .equ CtrlRead, _PINC
 
 ; pattern for DDR data port
 .ifdef __4BIT__
-    .ifndef __USE_4TO7__
-        .equ DataOut, 0x0f
-        .equ DataIn,  0xf0
-    .else
-        .equ DataOut, 0xf0
-        .equ DataIn,  0x0f
-    .endif
+  .ifdef __USE_4TO7__
+    .equ DataOut, 0xf0
+    .equ DataIn,  0x0f
+  .else
+    .equ DataOut, 0x0f
+    .equ DataIn,  0xf0
+  .endif
 .else
     .equ DataOut, 0xff
     .equ DataIn,  0x00
 .endif
 
 ;calculate counter for delay loop
-.ifndef __F_CPU									; if not set
-    .equ __F_CPU, 12000000                  	; set to 12MHz systemclock
+.ifndef __F_CPU                             ; if not set
+    .equ __F_CPU, 12000000                  ; set to 12MHz systemclock
 .endif
-.equ Cfactor, 2                             	; correction factor
-.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  	; loop counter
+.equ Cfactor, 2                             ; correction factor
+.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
 
 .data
 
 Version:
-    .asciz "1.07(2019-11-20)"
+    .asciz "1.1.1 2019-11-20"
+
 Mode:
 .ifdef __4BIT__
-    .ifndef __USE_4TO7__
-        .asciz "4 bit mode (0-3)"
-    .else
-        .asciz "4 bit mode (4-7)"
-    .endif
+  .ifndef __USE_4TO7__
+    .asciz "4 bit mode (0-3)"
+  .else
+    .asciz "4 bit mode (4-7)"
+  .endif
 .else
-    .ifdef __3WIRE__
-		.asciz "3 wire interface"
-	.else
-		.asciz "8 bit mode"
-	.endif
+  .ifdef __3WIRE__
+    .asciz "3 wire interface"
+  .else
+    .asciz "8 bit mode"
+  .endif
 .endif
 
 InitSequence:
@@ -247,33 +251,33 @@ writeLCD:
 .ifndef __3WIRE__
     push r24
 
-wait4Disp:
+  wait4Disp:
     clr r24             ; set r24 to 0 => control for LCD_ReadData
     rcall readLCD
     sbrc r24, _BUSY     ; wait until display is ready
     rjmp wait4Disp
     pop r24
-.endif
+
     tst r24             ; control or data register
     brne selectDataW
     cbi CtrlWrite, _RS
     rjmp selectCtrlW
-selectDataW:
+  selectDataW:
     sbi CtrlWrite, _RS
-selectCtrlW:
+  selectCtrlW:
     cbi CtrlWrite, _RW
 
     in r26, DataDDR     ; switch data port to output
     ori r26, DataOut
     out DataDDR, r26
 
-.ifdef __4BIT__
+  .ifdef __4BIT__
     in r25, DataWrite
     andi r25, DataIn    ; mask unused bits
     mov r26, r22        ; data => r26
-.ifndef __USE_4TO7__
+    .ifndef __USE_4TO7__
     swap r26            ; swap higher nibble to bit 0-3
-.endif
+    .endif
     andi r26, DataOut   ; mask higher nibble
     or r26, r25         ; chain data lower nibble
 
@@ -283,9 +287,9 @@ selectCtrlW:
     cbi CtrlWrite, _EN
 
     rcall wait          ; -> 8 cycles min. 1000ns enable cycle time min
-.ifdef __USE_4TO7__
+    .ifdef __USE_4TO7__
     swap r22            ; lower nibble -> to bit 4-7
-.endif
+    .endif
     andi r22, DataOut   ; mask lower nibble
     or r22, r25         ; chain data higher nibble
 
@@ -293,47 +297,45 @@ selectCtrlW:
     sbi CtrlWrite, _EN
     rcall wait
     cbi CtrlWrite, _EN
-.else ; write 8 bit data
-
-.ifdef __3WIRE__
-;****************************************************************************
-; Daten ins Schieberegister
-;        sbi DataWrite, _SC  ; clock to high
-        ldi r26, 8          ; 8bit zu schieben
-.shiftloop:
-        cbi DataWrite, _SC  ; clock to low
-        lsl r22             ; 1. bit => carry
-        brcc .bitclr        ; carry = 0 => 0 ins Schieberegister
-        sbi DataWrite, _SD  ; 1 schieben
-        rjmp .nxtbit
-.bitclr:
-        cbi DataWrite, _SD  ; 0 schieben
-.nxtbit:
-;rcall wait
-        sbi DataWrite, _SC  ; clock to high
-        dec r26
-        brne .shiftloop     ; alle 8 bit
-
-        tst r24             ; control or data register
-        brne select2DataW
-        cbi CtrlWrite, _RS
-        rjmp select2CtrlW
-    select2DataW:
-        sbi CtrlWrite, _RS
-    select2CtrlW:
-;****************************************************************************
-.else
+  .else                 ; write 8 bit data
     out DataWrite, r22
-.endif
     sbi CtrlWrite, _EN
-;    rcall wait
+    rcall wait
     cbi CtrlWrite, _EN
-.endif
-    ldi r24, 2
+  .endif
+.else                   ; __3WIRE__
+    ldi r26, 8          ; shift 8 bit
+  .shiftloop:
+    cbi CtrlWrite, _SC  ; set clock to low
+    lsl r22             ; shit bit to carry
+    brcc .bitclr        ; carry == 0 => shift '0'
+    sbi CtrlWrite, _SD  ; shift '1'
+    rjmp .nxtbit
+  .bitclr:
+    cbi CtrlWrite, _SD
+  .nxtbit:
+    ;rcall wait
+    sbi CtrlWrite, _SC  ; rising edge to shift
+    dec r26
+    brne .shiftloop     ; all bits done ?
+
+    tst r24             ; control or data register
+    brne select2DataW
+    cbi CtrlWrite, _RS
+    rjmp select2CtrlW
+select2DataW:
+    sbi CtrlWrite, _RS
+select2CtrlW:
+
+    sbi CtrlWrite, _EN  ; falling edge to set display data
+    rcall wait
+    cbi CtrlWrite, _EN
+
+    ldi r24, 2          ; no busy flag, wait 2ms
     clr r25
     rcall mswait
-
-    pop r25             ; restore register
+.endif                  ; __3WIRE__
+    pop r25
     pop r26
     ret
 .endfunc                ; writeLCD
@@ -424,7 +426,7 @@ mswait:
 l3:
         sbiw r24, 1     ; decrement double register
         brcc l1         ; wait 1 ms
-        pop r27         ; restore register
+        pop r27
         pop r26
         ret
 l1:

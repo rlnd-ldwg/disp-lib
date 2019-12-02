@@ -1,6 +1,6 @@
 /*  display library for HD44780 compatible LCD's
     copyright (c) 2012 Roland Ludwig
-    
+
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
@@ -20,7 +20,7 @@
 
 #ifndef HD44780_h
 #define HD44780_h
-
+#define __4BIT__ true
 #ifdef __cplusplus
 extern "C" {
 #endif
