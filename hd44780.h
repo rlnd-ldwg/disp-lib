@@ -15,12 +15,11 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-    Version 1.06 (2019-11-18)
+    Version 1.1.2 (2019-12-02)
 */
 
 #ifndef HD44780_h
 #define HD44780_h
-#define __4BIT__ true
 #ifdef __cplusplus
 extern "C" {
 #endif
