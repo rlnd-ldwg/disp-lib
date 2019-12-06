@@ -1,6 +1,7 @@
 # display-library
-Small fast library written in avr assembler
-Can be used with standard c/c++ compilers, ARDUINO or pure assembler programming
+Small fast library written in avr assembler.
+
+Can be used with standard C/C++ compilers, ARDUINO or pure assembler programming
 
 * for HD44780 compatible LCD's, support for
   * 8/4 bit interface
