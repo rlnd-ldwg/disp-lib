@@ -66,18 +66,13 @@
 ; for 3-wire interface (using 8-bit shift register 74xx164)
 .ifdef __3WIRE__
     .warning "3-wire version: no display reading possible"
-    .equ _SD, _RS   ; serial data (shared with lcd register select)
-    .equ _SC, 2     ; serial clock, RW bit can be used
+    .equ _SD, _RS       ; serial data (shared with lcd register select)
+    .equ _SC, 2         ; serial clock, RW bit can be used
     .equ CtrlOut, (1<<_RS | 1<<_EN | 1<<_SD | 1<<_SC)   ; pattern for DDR control port
 .else
     .equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN)            ; pattern for DDR control port
     .equ _BUSY, 7                                       ; displays busy flag
 .endif
-
-;    .equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN)            ; pattern for DDR control port
-    ;.equ CtrlOut, 0x07
-;.equ DataOut, 0xff
-;.equ DataIn, 0x00
 
 ; ATMEGA8 I/O register
 .ifdef __ATMEGA8__
@@ -297,7 +292,6 @@ writeLCD:
         .endif                  ; __4BIT__
         out DataWrite, r22      ; 4/8 bit
 
-
     .else                   ; __3WIRE__
         ldi r24, 2         ; no busy flag, wait 2ms
         clr r25
@@ -332,6 +326,7 @@ writeLCD:
     nop
     nop
     cbi CtrlWrite, _EN
+    
     pop r25
     pop r26
     ret
