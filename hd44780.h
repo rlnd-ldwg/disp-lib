@@ -15,7 +15,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-    Version 1.1.3 (2019-12-08)
+    Version 1.2.0 (2019-12-11)
 */
 
 #ifndef HD44780_h
@@ -40,7 +40,8 @@ extern "C" {
 
 extern void initLCD(void);
 extern void libinfo(void);
-extern void writeLCD(const char rs, char data);
+extern void writeLCD(char rs, char data);
+extern void printxyLCD(char x, char y, const char *text);
 extern void printLCD(const char *text);
 extern char readLCD(char rs);
 
