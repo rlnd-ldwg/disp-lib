@@ -23,6 +23,7 @@
 ; 2019-11-29 v1.1.1 released (3-wire interface)
 ; 2019-12-08 v1.1.3 error correction serial interface
 ; 2019-12-11 v1.2.0 error correction 4 bit mode, new function printxyLCD
+; 2019-12-12 v1.2.1 new functions uswait, newCHR
 ;
 ; example LCD pin assignment Philips LTN211 (8bit/4bit)
 ; LCD pin     : 1   2   3   4   5   6   7   8   9   10  11  12  13  14
@@ -30,7 +31,7 @@
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 PD0 PD1 PD2 PD3 PD4 PD5 PD6 PD7
 ; connected to: Gnd +5V Vco PC0 PC1 PC2 Gnd Gnd Gnd Gnd PD0 PD1 PD2 PD3
 
-.version "1.2.0 2019-12-11"
+.version "1.2.1 2019-12-12"
 
 .set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
@@ -164,21 +165,21 @@ initLCD:
     ori r24, CtrlOut
     out CtrlDDR, r24
 
-    ldi r24, 20         ; wait 15ms
-    clr r25
-    rcall mswait
+    ldi r24, 0x88       ;ldi r24, 20         ; wait 15ms
+    ldi r25, 0x13       ;clr r25
+    rcall uswait        ;rcall mswait
     ldi r22, 0x30       ; first init sequence
     clr r24
     rcall writeLCD
-    ldi r24, 5          ; wait 5ms (min 4.1ms)
-    clr r25
-    rcall mswait
+    ldi r24, 0x04       ;ldi r24, 5          ; wait 5ms (min 4.1ms)
+    ldi r25, 0x10       ;clr r25
+    rcall uswait        ;rcall mswait
     ldi r22, 0x30       ; first init sequence
     clr r24
     rcall writeLCD
-    ldi r24, 1          ; wait 1ms (min 0.1ms)
+    ldi r24, 0x64       ;ldi r24, 1          ; wait 1ms (min 0.1ms)
     clr r25
-    rcall mswait
+    rcall uswait        ;rcall mswait
     clr r24
     ldi r22, 0x30       ; first init sequence
     rcall writeLCD
@@ -448,6 +449,30 @@ textEnd:
     ret
 .endfunc                ; printLCD
 
+.global newCHR
+.func newCHR          ; void newCHR(char addr -> r24, const char *text -> r22:r23)
+newCHR:
+        push r25
+        lsl r24         ; r24 * 8
+        lsl r24
+        lsl r24
+        ori r24, 0x40   ; calculate CGRAM address
+        movw r30, r22   ; startaddress character => R30:R31 (Z)
+        mov r23, r24    ; r24 -> rs
+        ldi r25, 8      ; shift 8 bit
+.shift2loop:
+        clr r24         ; RS -> ctrl
+        mov r22, r23    ; CGRAM address
+        rcall writeLCD
+        ldi r24, 0x01   ; RS - data
+        ld r22, Z+      ; character[Z] -> r22
+        rcall writeLCD
+        inc r23         ; CGRAM address counter
+        dec r25
+        brne .shift2loop     ; all bits done ?
+        pop r25
+        ret
+.endfunc                ; newCHR
 .global mswait
 .func mswait            ; void mswait(const int ms -> r24:r25)
 
@@ -469,6 +494,27 @@ l2:
         brne    l2
         rjmp l3
 .endfunc                ; mswait
+
+.global uswait
+.func uswait            ; void uswait(int us -> r24:r25)
+
+        ;ldi r24, 1     ; 1
+        ;ldi r25, 0     ; 1
+        ;rcall uswait   ; 3
+
+uswait:
+        sbiw r24, 1     ; 2
+        brne loop       ; 1 / 2
+        ret             ; 4
+
+loop:   nop             ; 1
+        nop
+        nop
+        nop
+        nop
+        nop
+        rjmp uswait     ; 2
+.endfunc                ; uswait
 
 .local wait
 wait:
