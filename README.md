@@ -9,7 +9,7 @@ Can be used with standard C/C++ compilers, ARDUINO or pure assembler programming
   ![Circuit](https://github.com/rlnd-ldwg/disp-lib/blob/master/circuit.png)
 * for LED MAX7221 driver (not yet implemented)
 
-### mandatory settings
+### Mandatory settings
 The following bit constants must be set in the source-file:
 
 #### 4 / 8 bit mode
@@ -32,20 +32,23 @@ The following bit constants must be set in the source-file:
 .equ _SD, _RS   ; serial data (shared with lcd register select)
 .equ _SC, _RW   ; serial clock (RW not needed in serial mode)
 ```
-### functions HD44780
+### Functions HD44780
 
-#### initLCD
+#### initLCD(void)
 This function initializes the display. You can choose the mode in the source-file (hd44780.S) by uncommenting required the assembler definitions:
 ```asm
 ;.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
 ;.set __3WIRE__, true            ; if set the 3-wire interface (74xx164) will be used
 ```
-#### libinfo
+#### libinfo(void)
 An info about the library version and mode will be displayed.
 
 #### writeLCD(char rs, char data)
 The writeLCD function send then **data** to the selected register **rs**=0 => control or **rs**=1 => data
+
+#### char readLCD(char rs)
+Reads the data from selected register **rs**=0 => control or **rs**=1 => data
 
 #### printxyLCD(char x, char y, const char *text)
 The given **text** is display at column **x** and row **y**. The numbering starts at '1'.
@@ -53,16 +56,16 @@ The given **text** is display at column **x** and row **y**. The numbering start
 #### printLCD(const char *text)
 Same as above, but prints at aktual cursor position.
 
-#### char readLCD(char rs)
-Reads the data from selected register **rs**=0 => control or **rs**=1 => data
-
 #### newCHR(char addr, const char *character)
 Creates an new character in CGRAM. You can define 8 independent characters, the numbering starts at **addr** '0'.
 The function expects an array for **\*character** in the following format:
 ```C
+.byte 0x0e, 0x1f, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1f
+```
+```C
 char data[] = {0x0e, 0x1f, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1f};
 ```
-The example shows a battery.
+The example shows a battery:wink:.
 
 #### mswait(int ms)
 This functions waits for **ms** milliseconds.
