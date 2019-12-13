@@ -35,7 +35,7 @@ The following bit constants must be set in the source-file:
 ### Functions HD44780
 
 #### initLCD(void)
-This function initializes the display. You can choose the mode in the source-file (hd44780.S) by uncommenting the required assembler definitions:
+This function initializes the display. You can choose the mode in the source-file (hd44780.S) by commenting out the required assembler definitions:
 ```asm
 ;.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
