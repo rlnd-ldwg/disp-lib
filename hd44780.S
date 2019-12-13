@@ -20,8 +20,10 @@
 .set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
 ;.set __3WIRE__, true            ; if set the 3-wire interface (74xx164) will be used
+
 .set __ATMEGA8__, true
-.set __DEBUG__, true
+;.set __ATMega328__, true
+;.set __DEBUG__, true
 
 .ifdef __4BIT__                 ; pattern for DDR data port
     .warning "4-bit version: pins D0-D3 need pulldown to ground"
@@ -49,7 +51,6 @@
 .equ _RW, 5     ; read/write: read=1, write=0
 .equ _EN, 4     ; enable: falling edge
 
-
 ; for 3-wire interface (using 8-bit shift register 74xx164)
 .ifdef __3WIRE__
     .warning "3-wire version: no display reading possible"
@@ -61,44 +62,20 @@
     .equ _BUSY, 7                                       ; displays busy flag
 .endif
 
-; ATMEGA8 I/O register
+; AVR register
 .ifdef __ATMEGA8__
-    .equ _PORTB, 0x18
-    .equ _PINB, 0x16
-    .equ _DDRB, 0x17
-    .equ _PORTC, 0x15
-    .equ _PINC, 0x13
-    .equ _DDRC, 0x14
-    .equ _PORTD, 0x12
-    .equ _PIND, 0x10
-    .equ _DDRD, 0x11
-    .equ _SFIOR, 0x30   ; special function I/O register
-    .equ _PUD, 0x02     ; pull up disable
-.else                   ; ATMega 328, ATMega32u4
-    .equ _PORTB, 0x05
-    .equ _PINB, 0x03
-    .equ _DDRB, 0x04
-    .equ _PORTC, 0x08
-    .equ _PINC, 0x06
-    .equ _DDRC, 0x07
-    .equ _PORTD, 0x0b
-    .equ _PIND, 0x09
-    .equ _DDRD, 0x0a
-    .equ _PORTE, 0x0e
-    .equ _PINE, 0x0c
-    .equ _DDRE, 0x0d
-    .equ _PORTF, 0x11
-    .equ _PINF, 0x0f
-    .equ _DDRF, 0x10
+    .include "/Users/roland/Projects/inc/m8def.inc"
+.elif __ATMega328__    ; ATMega32u4
+    .include "/Users/roland/Projects/inc/m328def.inc"
 .endif
 
 ; port redefinition for better readability
-.equ DataDDR, _DDRD
-.equ DataWrite, _PORTD
-.equ DataRead, _PIND
-.equ CtrlDDR, _DDRC
-.equ CtrlWrite, _PORTC
-.equ CtrlRead, _PINC
+.equ DataDDR, DDRD
+.equ DataWrite, PORTD
+.equ DataRead, PIND
+.equ CtrlDDR, DDRC
+.equ CtrlWrite, PORTC
+.equ CtrlRead, PINC
 
 ;calculate counter for delay loop
 .ifndef __F_CPU                             ; if not set
