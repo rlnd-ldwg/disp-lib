@@ -14,9 +14,9 @@
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-    Version 1.2.1 (2019-12-12)
 */
+
+#define version "1.2.2 2019-12-13"
 
 #ifndef HD44780_h
 #define HD44780_h
@@ -29,6 +29,7 @@ extern "C" {
     #define _DATA 1
 
 // LCD control values
+    #define _NULL	0b00000000		// dummy
     #define _CLEAR  0b00000001      // clear display
     #define _HOME   0b00000010      // cursor home
     #define _DPCTRL 0b00001000      // display control
@@ -37,6 +38,10 @@ extern "C" {
     #define _BLON   0b00000001      // cursor blink
     #define _CGRAM  0b01000000      // character RAM address
     #define _DDRAM  0b10000000      // display RAM address
+
+    #define _LCDHOME writeLCD(_CTRL, _HOME)
+    #define _LCDCLEAR writeLCD(_CTRL, _CLEAR)
+    #define _LCDCTRL (cmd) writeLCD(_CTRL, cmd | _DPCTRL)	// cmd = _DPON | _CUON | _BLON
 
     extern void initLCD(void);
     extern void libinfo(void);
@@ -47,18 +52,6 @@ extern "C" {
     extern void newCHR(char addr, const char *character);
     extern void mswait(int ms);
     extern void uswait(int us);
-
-/* old deprecated functions
-    extern void LCD_CursorOn(void);
-    extern void LCD_CursorOff(void);
-    extern void LCD_SetCursor(char, char);
-    extern void LCD_Off(void);
-    extern void LCD_On(void);
-    extern void InitLCD(void);
-    extern void LCD_SendData(char, char);
-    extern char LCD_ReadData(char);
-    extern void LCD_PrintStr(char *buffer);
-*/
 
 #ifdef __cplusplus
 }

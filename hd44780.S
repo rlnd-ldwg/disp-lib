@@ -5,38 +5,23 @@
 ; it under the terms of the GNU General Public License as published by
 ; the Free Software Foundation; either version 2 of the License, or
 ; (at your option) any later version.
-
+;
 ; This program is distributed in the hope that it will be useful,
 ; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ; GNU General Public License for more details.
-
+;
 ; You should have received a copy of the GNU General Public License along
 ; with this program; if not, write to the Free Software Foundation, Inc.,
 ; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-;
-; 2012-04-05 initial version
-; 2019-09-10 redesign
-; 2019-10-31 stable 4-bit version
-; 2019-11-01 v1.0.0 released
-; 2019-11-15 possible usage of the upper 4 bits in 4 bit mode
-; 2019-11-29 v1.1.1 released (3-wire interface)
-; 2019-12-08 v1.1.3 error correction serial interface
-; 2019-12-11 v1.2.0 error correction 4 bit mode, new function printxyLCD
-; 2019-12-12 v1.2.1 new functions uswait, newCHR
-;
-; example LCD pin assignment Philips LTN211 (8bit/4bit)
-; LCD pin     : 1   2   3   4   5   6   7   8   9   10  11  12  13  14
-; Description : Vss Vdd Vo  RS  R/W E   D0  D1  D2  D3  D4  D5  D6  D7
-; connected to: Gnd +5V Vco PC0 PC1 PC2 PD0 PD1 PD2 PD3 PD4 PD5 PD6 PD7
-; connected to: Gnd +5V Vco PC0 PC1 PC2 Gnd Gnd Gnd Gnd PD0 PD1 PD2 PD3
 
-.version "1.2.1 2019-12-12"
+.version "1.2.2 2019-12-13"
 
 .set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
 ;.set __3WIRE__, true            ; if set the 3-wire interface (74xx164) will be used
 .set __ATMEGA8__, true
+.set __DEBUG__, true
 
 .ifdef __4BIT__                 ; pattern for DDR data port
     .warning "4-bit version: pins D0-D3 need pulldown to ground"
@@ -122,10 +107,16 @@
 .equ Cfactor, 2                             ; correction factor
 .equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
 
+; init parameters
+.equ _4bit,  0b00101000 ; 4 bit, multiple lines, 5x7
+.equ _8bit,  0b00111000 ; 8 bit, multiple lines, 5x7
+.equ clear,  0b00000001 ; clear display
+.equ dpctrl, 0b00001100 ; display on, cursor off, blink off
+
 .data
 
 Version:
-    .asciz "1.2.0 2019-12-11"
+    .asciz "1.2.2 2019-12-13"
 
 Mode:
 .ifdef __4BIT__
@@ -142,12 +133,35 @@ Mode:
     .endif
 .endif
 
-InitSequence:
-.ifdef __4BIT__
-    .byte 0x28, 0x0c, 0x01; , 0x80    ; 4-bit mode|clear display|display on, cursor off, cursor doesn't blink|DD-RAM address=0
-.else
-    .byte 0x38, 0x01, 0x0c; , 0x80    ; 8-bit mode|clear display|display on, cursor off, cursor doesn't blink|DD-RAM address=0
-.endif
+.macro _DELAY_MS ms
+    ldi r24, lo8(\ms)
+   ldi r25, hi8(\ms)
+    rcall mswait
+.endm
+
+.macro _DELAY_US us			; only correct for 12 MHz
+	ldi r24, lo8(\us)
+	ldi r25, hi8(\us)
+	rcall uswait
+.endm
+
+.macro _DP_CTRL cmd
+    ldi r22, \cmd
+    clr r24
+    rcall writeLCD
+.endm
+
+.macro _PRINT text
+    ldi r24, lo8(\text)
+    ldi r25, hi8(\text)
+    rcall printLCD
+.endm
+
+.macro _CLEAR_LCD
+    clr r24
+    ldi r22, 0x01
+    rcall writeLCD
+.endm
 
 LineAddress:
     .byte 0x00, 0x40, 0x10, 0x50    ; line # 1, 2, 3, 4 (16x?)
@@ -165,36 +179,21 @@ initLCD:
     ori r24, CtrlOut
     out CtrlDDR, r24
 
-    ldi r24, 0x88       ;ldi r24, 20         ; wait 15ms
-    ldi r25, 0x13       ;clr r25
-    rcall uswait        ;rcall mswait
-    ldi r22, 0x30       ; first init sequence
-    clr r24
-    rcall writeLCD
-    ldi r24, 0x04       ;ldi r24, 5          ; wait 5ms (min 4.1ms)
-    ldi r25, 0x10       ;clr r25
-    rcall uswait        ;rcall mswait
-    ldi r22, 0x30       ; first init sequence
-    clr r24
-    rcall writeLCD
-    ldi r24, 0x64       ;ldi r24, 1          ; wait 1ms (min 0.1ms)
-    clr r25
-    rcall uswait        ;rcall mswait
-    clr r24
-    ldi r22, 0x30       ; first init sequence
-    rcall writeLCD
+    _DELAY_US 15000
+    _DP_CTRL 0x30
+    _DELAY_US 4100
+    _DP_CTRL 0x30
+    _DELAY_US 100
+	_DP_CTRL 0x30
 .ifdef __4BIT__
-    ldi r22, 0x20       ; 4 bit mode
-    rcall writeLCD
+    _DP_CTRL 0x20
+    _DP_CTRL _4bit
+.else
+    _DP_CTRL _8bit
 .endif
-    lds r22, InitSequence   ; send initialization sequence
-    rcall writeLCD
-    lds r22, InitSequence+1
-    rcall writeLCD
-    lds r22, InitSequence+2
-    rcall writeLCD
-;    lds r22, InitSequence+3
-;    rcall writeLCD
+    _DP_CTRL dpctrl     ; display on, cursor off, blink off
+    _DP_CTRL clear
+
     pop r24
     pop r25
     ret
@@ -207,33 +206,15 @@ libinfo:
     push r25
     push r24
     push r22
-    clr r24
-    ldi r22, 0x01
-    rcall writeLCD
-    clr r24
-    ldi r22, 0x02
-    rcall writeLCD
-    ldi r24, lo8(Version)
-    ldi r25, hi8(Version)
-    rcall printLCD
-    ldi r24, 0xdc       ; wait 1500ms
-    ldi r25, 0x05
-    rcall mswait
-    clr r24
-    ldi r22, 0x01
-    rcall writeLCD
-    clr r24
-    ldi r22, 0x02
-    rcall writeLCD
-    ldi r24, lo8(Mode)
-    ldi r25, hi8(Mode)
-    rcall printLCD
-    ldi r24, 0xdc      ; wait 1500ms
-    ldi r25, 0x05
-    rcall mswait
-    clr r24
-    ldi r22, 0x01
-    rcall writeLCD
+
+    _DP_CTRL clear
+    _PRINT Version
+    _DELAY_MS 1500
+    _DP_CTRL clear
+    _PRINT Mode
+    _DELAY_MS 1500
+    _DP_CTRL clear
+
     pop r22
     pop r24
     pop r25
@@ -324,70 +305,69 @@ writeLCD:
         sbi CtrlWrite, _RS
         select2CtrlW:
     .endif                  ; __3WIRE__
-    sbi CtrlWrite, _EN
-    nop                 ; Enable puls wide 300ns at 20MHz
-    nop
-    nop
-    nop
-    cbi CtrlWrite, _EN
+        sbi CtrlWrite, _EN
+        nop                 ; Enable puls wide 300ns at 20MHz
+        nop
+        nop
+        nop
+        cbi CtrlWrite, _EN
 
-    pop r25
-    pop r26
-    ret
+        pop r25
+        pop r26
+        ret
 .endfunc                ; writeLCD
 
 .global readLCD
 .func readLCD           ; char readLCD(char rs -> r24) -> r24
 
 readLCD:
-    push r25            ; save register
+        push r25            ; save register
 
-    tst r24             ; control or data register
-    brne selectDataR
-    cbi CtrlWrite, _RS
-    rjmp selectCtrlR
+        tst r24             ; control or data register
+        brne selectDataR
+        cbi CtrlWrite, _RS
+            rjmp selectCtrlR
 selectDataR:
-    sbi CtrlWrite, _RS
+        sbi CtrlWrite, _RS
 selectCtrlR:
-    sbi CtrlWrite, _RW
+        sbi CtrlWrite, _RW
 
-    in r24, DataDDR     ; switch data port to input
-    andi r24, DataIn
-    out DataDDR, r24
+        in r24, DataDDR     ; switch data port to input
+        andi r24, DataIn
+        out DataDDR, r24
 
 ; read data
-    sbi CtrlWrite, _EN
-    rcall wait
-    in r24, DataRead    ; in 4 bit mode higher nibble -> bit 0-3 !!!
-    cbi CtrlWrite, _EN
+        sbi CtrlWrite, _EN
+        rcall wait
+        in r24, DataRead    ; in 4 bit mode higher nibble -> bit 0-3 !!!
+        cbi CtrlWrite, _EN
 
 .ifdef __4BIT__
-    sbi CtrlWrite, _EN
-    rcall wait
-    in r25, DataRead    ; lower nibble
-    cbi CtrlWrite, _EN
-    rcall wait
+        sbi CtrlWrite, _EN
+        rcall wait
+        in r25, DataRead    ; lower nibble
+        cbi CtrlWrite, _EN
+        rcall wait
 .ifndef __USE_4TO7__
-    swap r24            ; bits 0-3 used -> swap r24 to higher nibble
+        swap r24            ; bits 0-3 used -> swap r24 to higher nibble
 .else
-    swap r25            ; bits 4-7 used -> swap r25 to lower nibble
+        swap r25            ; bits 4-7 used -> swap r25 to lower nibble
 .endif
-    andi r24, 0xf0
-    andi r25, 0x0f
-    or r24, r25
+        andi r24, 0xf0
+        andi r25, 0x0f
+        or r24, r25
 .endif
 
-    rcall wait
-    pop r25             ; restore register
-    ret
+        rcall wait
+        pop r25             ; restore register
+        ret
 .endfunc                ; readLCD
 
 .global printxyLCD
 .func printxyLCD        ; void printxyLCD(char x -> r24, y -> r22; const char *text -> r20:r21)
 
 printxyLCD:
-; parameters: X column => r24, Y line => r22 zeile, spalte
-        push r31            ; save register
+        push r31
         push r30
 
         dec r24             ; pos 1 => 0
@@ -399,60 +379,44 @@ printxyLCD:
         adc r31, r22        ; add carry if neccesarry
         ld r22, Z           ; lineaddress -> r22
         add r22, r24        ; lineaddress + column (r24)
-.ifdef __DEBUG__
-        mov r30,r22
-        ldi r31, 0x30
-        swap r22
-        andi r22, 0x0f
-        add r22, r31       ; hi nibble as number
-        ldi r24, 0x01
-        rcall writeLCD
-        mov r22, r30
-        andi r22, 0x0f
-        add r22, r31       ; lo nibble as number
-        rcall writeLCD
-        pop r30
-        pop r31
-        ret
-.endif  ; __DEBUG__
         clr r24             ; write control
-        ori r22, 0x80       ; DD RAM adress set
+        ori r22, 0x80       ; set DDRAM address
         rcall writeLCD
         movw r30, r20       ; startadress string => R30:31 (Z)
-        push r22            ; only for correct "pop" in printLCD
+        push r22            ; needed for correct "pop" in printLCD
         rjmp .printLCD      ; jump to printLCD
-.endfunc                    ; printxyLCD
+
+.endfunc                ; printxyLCD
 
 .global printLCD
 .func printLCD          ; void printLCD(const char *text -> r24:r25)
 
 printLCD:
-    push r31            ; save register
-    push r30
-    push r22
+        push r31            ; save register
+        push r30
+        push r22
 
-    movw r30, r24       ; startadress string => R30:31 (Z)
+        movw r30, r24       ; startadress string => R30:31 (Z)
 .printLCD:
-    ldi r24, 0x01       ; select data register
-
+        ldi r24, 0x01       ; select data register
 nextChar:
-    ld  r22, Z+
-    tst r22             ; end of text?
-    breq textEnd
-    rcall writeLCD
-    rjmp nextChar
-
+        ld  r22, Z+
+        tst r22             ; end of text?
+        breq textEnd
+        rcall writeLCD
+        rjmp nextChar
 textEnd:
-    pop r22
-    pop r30
-    pop r31
-    ret
+        pop r22
+        pop r30
+        pop r31
+        ret
 .endfunc                ; printLCD
 
 .global newCHR
-.func newCHR          ; void newCHR(char addr -> r24, const char *text -> r22:r23)
+.func newCHR            ; void newCHR(char addr -> r24, const char *text -> r22:r23)
 newCHR:
         push r25
+
         lsl r24         ; r24 * 8
         lsl r24
         lsl r24
@@ -473,24 +437,22 @@ newCHR:
         pop r25
         ret
 .endfunc                ; newCHR
+
 .global mswait
 .func mswait            ; void mswait(const int ms -> r24:r25)
 
 mswait:
         push r26        ; save register
         push r27
-l3:
-        sbiw r24, 1     ; decrement double register
+l3:     sbiw r24, 1     ; decrement double register
         brcc l1         ; wait 1 ms
         pop r27
         pop r26
         ret
-l1:
-        nop
+l1:     nop
         ldi     r26, lo8(Dloop)
         ldi     r27, hi8(Dloop)
-l2:
-        sbiw    r26, 1
+l2:     sbiw    r26, 1
         brne    l2
         rjmp l3
 .endfunc                ; mswait
