@@ -1,5 +1,5 @@
 # display-library
-Small, fast library written in avr assembler.
+Small, fast library written in AVR assembler.
 
 Can be used with standard C/C++ compilers, ARDUINO or pure assembler programming
 
@@ -20,7 +20,7 @@ The following bit constants must be set in the source-file:
 #### 3 wire interface
 * *_SD* Serial data (shared with register select)
 * *_SC* Serial clock
- 
+
  Example:
  ```asm
  ; define control bits

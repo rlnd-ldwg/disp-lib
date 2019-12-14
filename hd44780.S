@@ -15,7 +15,7 @@
 ; with this program; if not, write to the Free Software Foundation, Inc.,
 ; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-.version "1.2.2 2019-12-13"
+.version "1.2.3 2019-12-13"
 
 .set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
@@ -65,8 +65,10 @@
 ; AVR register
 .ifdef __ATMEGA8__
     .include "/Users/roland/Projects/inc/m8def.inc"
-.elif __ATMega328__    ; ATMega32u4
+.else
+.ifdef __ATMega328__    ; ATMega32u4
     .include "/Users/roland/Projects/inc/m328def.inc"
+.endif
 .endif
 
 ; port redefinition for better readability
@@ -93,7 +95,7 @@
 .data
 
 Version:
-    .asciz "1.2.2 2019-12-13"
+    .asciz "1.2.3 2019-12-13"
 
 Mode:
 .ifdef __4BIT__
@@ -112,7 +114,7 @@ Mode:
 
 .macro _DELAY_MS ms
     ldi r24, lo8(\ms)
-   ldi r25, hi8(\ms)
+    ldi r25, hi8(\ms)
     rcall mswait
 .endm
 
@@ -205,83 +207,39 @@ writeLCD:
     push r26            ; save register
     push r25
     push r24
-    .ifndef __3WIRE__
-        wait4Disp:
-        clr r24             ; set r24 to 0 => control for LCD_ReadData
-        rcall readLCD
-        sbrc r24, _BUSY     ; wait until display is ready
-        rjmp wait4Disp
+.ifndef __3WIRE__
+wait4Disp:
+    clr r24             ; set r24 to 0 => control for LCD_ReadData
+    rcall readLCD
+    sbrc r24, _BUSY     ; wait until display is ready
+    rjmp wait4Disp
 
-        pop r24
-        tst r24             ; control or data register
-        brne selectDataW
-        cbi CtrlWrite, _RS
-        rjmp selectCtrlW
-        selectDataW:
-        sbi CtrlWrite, _RS
-        selectCtrlW:
+    pop r24
+    tst r24             ; control or data register
+    brne selectDataW
+    cbi CtrlWrite, _RS
+    rjmp selectCtrlW
+selectDataW:
+    sbi CtrlWrite, _RS
+selectCtrlW:
 
-        cbi CtrlWrite, _RW
+    cbi CtrlWrite, _RW
 
-        in r26, DataDDR     ; switch data port to output
-        ori r26, DataOut
-        out DataDDR, r26
+    in r26, DataDDR     ; switch data port to output
+    ori r26, DataOut
+    out DataDDR, r26
 
-        .ifdef __4BIT__
-            in r25, DataWrite
-            andi r25, DataIn    ; mask unused bits
-            mov r26, r22        ; data => r26
-            .ifndef __USE_4TO7__
-                swap r26            ; swap higher nibble to bit 0-3
-            .endif
-            andi r26, DataOut   ; mask higher nibble
-            or r26, r25         ; chain data lower nibble
+    .ifdef __4BIT__
+        in r25, DataWrite
+        andi r25, DataIn    ; mask unused bits
+        mov r26, r22        ; data => r26
+        .ifndef __USE_4TO7__
+            swap r26            ; swap higher nibble to bit 0-3
+        .endif
+        andi r26, DataOut   ; mask higher nibble
+        or r26, r25         ; chain data lower nibble
 
-            out DataWrite, r26  ; write higher nibble
-            sbi CtrlWrite, _EN
-            nop                 ; Enable puls wide 300ns at 20MHz
-            nop
-            nop
-            nop
-            cbi CtrlWrite, _EN
-
-            rcall wait          ; -> 8 cycles min. 1000ns enable cycle time min
-            .ifdef __USE_4TO7__
-                swap r22        ; lower nibble -> to bit 4-7
-            .endif
-            andi r22, DataOut   ; mask lower nibble
-            or r22, r25         ; chain data higher nibble
-        .endif                  ; __4BIT__
-        out DataWrite, r22      ; 4/8 bit
-
-    .else                   ; __3WIRE__
-        ldi r24, 2         ; no busy flag, wait 2ms
-        clr r25
-        rcall mswait
-
-        ldi r26, 8          ; shift 8 bit
-        .shiftloop:
-        cbi CtrlWrite, _SC  ; set clock to low
-        lsl r22             ; shift bit to carry
-        brcc .bitclr        ; carry == 0 => shift '0'
-        sbi CtrlWrite, _SD  ; shift '1'
-        rjmp .nxtbit
-        .bitclr:
-        cbi CtrlWrite, _SD
-        .nxtbit:
-        sbi CtrlWrite, _SC  ; rising edge to shift
-        dec r26
-        brne .shiftloop     ; all bits done ?
-
-        pop r24
-        tst r24             ; control or data register
-        brne select2DataW
-        cbi CtrlWrite, _RS
-        rjmp select2CtrlW
-        select2DataW:
-        sbi CtrlWrite, _RS
-        select2CtrlW:
-    .endif                  ; __3WIRE__
+        out DataWrite, r26  ; write higher nibble
         sbi CtrlWrite, _EN
         nop                 ; Enable puls wide 300ns at 20MHz
         nop
@@ -289,170 +247,213 @@ writeLCD:
         nop
         cbi CtrlWrite, _EN
 
-        pop r25
-        pop r26
-        ret
+        rcall wait          ; -> 8 cycles min. 1000ns enable cycle time min
+        .ifdef __USE_4TO7__
+            swap r22        ; lower nibble -> to bit 4-7
+        .endif
+        andi r22, DataOut   ; mask lower nibble
+        or r22, r25         ; chain data higher nibble
+    .endif                  ; __4BIT__
+    out DataWrite, r22      ; 4/8 bit
+
+.else                   ; __3WIRE__
+    ldi r24, 2         ; no busy flag, wait 2ms
+    clr r25
+    rcall mswait
+
+    ldi r26, 8          ; shift 8 bit
+.shiftloop:
+    cbi CtrlWrite, _SC  ; set clock to low
+    lsl r22             ; shift bit to carry
+    brcc .bitclr        ; carry == 0 => shift '0'
+    sbi CtrlWrite, _SD  ; shift '1'
+    rjmp .nxtbit
+.bitclr:
+    cbi CtrlWrite, _SD
+    .nxtbit:
+    sbi CtrlWrite, _SC  ; rising edge to shift
+    dec r26
+    brne .shiftloop     ; all bits done ?
+
+    pop r24
+    tst r24             ; control or data register
+    brne select2DataW
+    cbi CtrlWrite, _RS
+    rjmp select2CtrlW
+select2DataW:
+    sbi CtrlWrite, _RS
+select2CtrlW:
+.endif                  ; __3WIRE__
+    sbi CtrlWrite, _EN
+    nop                 ; Enable puls wide 300ns at 20MHz
+    nop
+    nop
+    nop
+    cbi CtrlWrite, _EN
+
+    pop r25
+    pop r26
+    ret
 .endfunc                ; writeLCD
 
 .global readLCD
 .func readLCD           ; char readLCD(char rs -> r24) -> r24
 
 readLCD:
-        push r25            ; save register
+    push r25            ; save register
 
-        tst r24             ; control or data register
-        brne selectDataR
-        cbi CtrlWrite, _RS
-            rjmp selectCtrlR
+    tst r24             ; control or data register
+    brne selectDataR
+    cbi CtrlWrite, _RS
+    rjmp selectCtrlR
 selectDataR:
-        sbi CtrlWrite, _RS
+    sbi CtrlWrite, _RS
 selectCtrlR:
-        sbi CtrlWrite, _RW
+    sbi CtrlWrite, _RW
 
-        in r24, DataDDR     ; switch data port to input
-        andi r24, DataIn
-        out DataDDR, r24
+    in r24, DataDDR     ; switch data port to input
+    andi r24, DataIn
+    out DataDDR, r24
 
 ; read data
-        sbi CtrlWrite, _EN
-        rcall wait
-        in r24, DataRead    ; in 4 bit mode higher nibble -> bit 0-3 !!!
-        cbi CtrlWrite, _EN
+    sbi CtrlWrite, _EN
+    rcall wait
+    in r24, DataRead    ; in 4 bit mode higher nibble -> bit 0-3 !!!
+    cbi CtrlWrite, _EN
 
 .ifdef __4BIT__
-        sbi CtrlWrite, _EN
-        rcall wait
-        in r25, DataRead    ; lower nibble
-        cbi CtrlWrite, _EN
-        rcall wait
-.ifndef __USE_4TO7__
+    sbi CtrlWrite, _EN
+    rcall wait
+    in r25, DataRead    ; lower nibble
+    cbi CtrlWrite, _EN
+    rcall wait
+    .ifndef __USE_4TO7__
         swap r24            ; bits 0-3 used -> swap r24 to higher nibble
-.else
+    .else
         swap r25            ; bits 4-7 used -> swap r25 to lower nibble
-.endif
-        andi r24, 0xf0
-        andi r25, 0x0f
-        or r24, r25
+    .endif
+    andi r24, 0xf0
+    andi r25, 0x0f
+    or r24, r25
 .endif
 
-        rcall wait
-        pop r25             ; restore register
-        ret
+    rcall wait
+    pop r25             ; restore register
+    ret
 .endfunc                ; readLCD
 
 .global printxyLCD
 .func printxyLCD        ; void printxyLCD(char x -> r24, y -> r22; const char *text -> r20:r21)
 
 printxyLCD:
-        push r31
-        push r30
+    push r31
+    push r30
 
-        dec r24             ; pos 1 => 0
-        dec r22             ; pos 1 => 0
-        ldi r30, lo8(LineAddress)
-        ldi r31, hi8(LineAddress)
-        add r30, r22        ; calculate lineaddress
-        clr r22
-        adc r31, r22        ; add carry if neccesarry
-        ld r22, Z           ; lineaddress -> r22
-        add r22, r24        ; lineaddress + column (r24)
-        clr r24             ; write control
-        ori r22, 0x80       ; set DDRAM address
-        rcall writeLCD
-        movw r30, r20       ; startadress string => R30:31 (Z)
-        push r22            ; needed for correct "pop" in printLCD
-        rjmp .printLCD      ; jump to printLCD
-
+    dec r24             ; pos 1 => 0
+    dec r22             ; pos 1 => 0
+    ldi r30, lo8(LineAddress)
+    ldi r31, hi8(LineAddress)
+    add r30, r22        ; calculate lineaddress
+    clr r22
+    adc r31, r22        ; add carry if neccesarry
+    ld r22, Z           ; lineaddress -> r22
+    add r22, r24        ; lineaddress + column (r24)
+    clr r24             ; write control
+    ori r22, 0x80       ; set DDRAM address
+    rcall writeLCD
+    movw r30, r20       ; startadress string => R30:31 (Z)
+    push r22            ; needed for correct "pop" in printLCD
+    rjmp .printLCD      ; jump to printLCD
 .endfunc                ; printxyLCD
 
 .global printLCD
 .func printLCD          ; void printLCD(const char *text -> r24:r25)
 
 printLCD:
-        push r31            ; save register
-        push r30
-        push r22
+    push r31            ; save register
+    push r30
+    push r22
 
-        movw r30, r24       ; startadress string => R30:31 (Z)
+    movw r30, r24       ; startadress string => R30:31 (Z)
 .printLCD:
-        ldi r24, 0x01       ; select data register
+    ldi r24, 0x01       ; select data register
 nextChar:
-        ld  r22, Z+
-        tst r22             ; end of text?
-        breq textEnd
-        rcall writeLCD
-        rjmp nextChar
+    ld  r22, Z+
+    tst r22             ; end of text?
+    breq textEnd
+    rcall writeLCD
+    rjmp nextChar
 textEnd:
-        pop r22
-        pop r30
-        pop r31
-        ret
+
+    pop r22
+    pop r30
+    pop r31
+    ret
 .endfunc                ; printLCD
 
 .global newCHR
 .func newCHR            ; void newCHR(char addr -> r24, const char *text -> r22:r23)
 newCHR:
-        push r25
+    push r25
 
-        lsl r24         ; r24 * 8
-        lsl r24
-        lsl r24
-        ori r24, 0x40   ; calculate CGRAM address
-        movw r30, r22   ; startaddress character => R30:R31 (Z)
-        mov r23, r24    ; r24 -> rs
-        ldi r25, 8      ; shift 8 bit
+    lsl r24         ; r24 * 8
+    lsl r24
+    lsl r24
+    ori r24, 0x40   ; calculate CGRAM address
+    movw r30, r22   ; startaddress character => R30:R31 (Z)
+    mov r23, r24    ; r24 -> rs
+    ldi r25, 8      ; shift 8 bit
 .shift2loop:
-        clr r24         ; RS -> ctrl
-        mov r22, r23    ; CGRAM address
-        rcall writeLCD
-        ldi r24, 0x01   ; RS - data
-        ld r22, Z+      ; character[Z] -> r22
-        rcall writeLCD
-        inc r23         ; CGRAM address counter
-        dec r25
-        brne .shift2loop     ; all bits done ?
-        pop r25
-        ret
+    clr r24         ; RS -> ctrl
+    mov r22, r23    ; CGRAM address
+    rcall writeLCD
+    ldi r24, 0x01   ; RS - data
+    ld r22, Z+      ; character[Z] -> r22
+    rcall writeLCD
+    inc r23         ; CGRAM address counter
+    dec r25
+    brne .shift2loop     ; all bits done ?
+
+    pop r25
+    ret
 .endfunc                ; newCHR
 
 .global mswait
 .func mswait            ; void mswait(const int ms -> r24:r25)
 
 mswait:
-        push r26        ; save register
-        push r27
-l3:     sbiw r24, 1     ; decrement double register
-        brcc l1         ; wait 1 ms
-        pop r27
-        pop r26
-        ret
-l1:     nop
-        ldi     r26, lo8(Dloop)
-        ldi     r27, hi8(Dloop)
-l2:     sbiw    r26, 1
-        brne    l2
-        rjmp l3
+    push r26        ; save register
+    push r27
+l3: sbiw r24, 1     ; decrement double register
+    brcc l1         ; wait 1 ms
+    pop r27
+    pop r26
+    ret
+l1: nop
+    ldi     r26, lo8(Dloop)
+    ldi     r27, hi8(Dloop)
+l2: sbiw    r26, 1
+    brne    l2
+    rjmp l3
 .endfunc                ; mswait
 
 .global uswait
 .func uswait            ; void uswait(int us -> r24:r25)
 
-        ;ldi r24, 1     ; 1
-        ;ldi r25, 0     ; 1
-        ;rcall uswait   ; 3
-
 uswait:
-        sbiw r24, 1     ; 2
-        brne loop       ; 1 / 2
-        ret             ; 4
-
-loop:   nop             ; 1
-        nop
-        nop
-        nop
-        nop
-        nop
-        rjmp uswait     ; 2
+    ;ldi r24, 1     ; 1
+    ;ldi r25, 0     ; 1
+    ;rcall uswait   ; 3
+    sbiw r24, 1     ; 2
+    brne l4         ; 1 / 2
+    ret             ; 4
+l4: nop             ; 1
+    nop
+    nop
+    nop
+    nop
+    nop
+    rjmp uswait     ; 2
 .endfunc                ; uswait
 
 .local wait
