@@ -17,8 +17,6 @@
 
 .version "1.2.4 2019-12-22"
 
-;.include "/Users/roland/Projects/lib/utils/utils.S"
-
 ;.set __INFO__, true             ; include "libinfo" function
 .set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
