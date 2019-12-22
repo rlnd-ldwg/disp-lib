@@ -17,8 +17,9 @@
 
 .version "1.2.4 2019-12-22"
 
+;.set __KS0066__ , true                ; KS0066 kompatibles interface
 ;.set __INFO__, true             ; include "libinfo" function
-.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
+;.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
 ;.set __3WIRE__, true            ; if set the 3-wire interface (74xx164) will be used
 .set __USE_FLASH__, true        ; use flash memory as source for "newCHR" (this will save your RAM)
@@ -51,8 +52,8 @@
 
 ; define control bits
 .equ _RS, 3     ; register select: data=1, control=0
-.equ _RW, 5     ; read/write: read=1, write=0
-.equ _EN, 4     ; enable: falling edge
+.equ _RW, 4     ; read/write: read=1, write=0
+.equ _EN, 5     ; enable: falling edge
 
 ; for 3-wire interface (using 8-bit shift register 74xx164)
 .ifdef __3WIRE__
@@ -91,7 +92,9 @@
 ;.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
 
 ; init parameters
-.equ _4bit,  0b00101000 ; 4 bit, multiple lines, 5x7
+.equ _4bit,  0b00100000 ; 4 bit, one line, 5x7
+;.equ _4bit,  0b00101000 ; 4 bit, multiple lines, 5x7
+;.equ _8bit,  0b00110000 ; 8 bit, one line, 5x7
 .equ _8bit,  0b00111000 ; 8 bit, multiple lines, 5x7
 .equ clear,  0b00000001 ; clear display
 .equ dpctrl, 0b00001100 ; display on, cursor off, blink off
@@ -104,7 +107,7 @@
     rcall mswait
 .endm
 
-.macro _DELAY_US us			; only correct for 12 MHz
+.macro _DELAY_US us     ; only correct for 12 MHz
 	ldi r24, lo8(\us)
 	ldi r25, hi8(\us)
 	rcall uswait
@@ -133,7 +136,6 @@
 .ifdef __INFO__
 Version:
     .asciz "1.2.4 2019-12-22"
-
 Mode:
     .ifdef __4BIT__
         .ifndef __USE_4TO7__
@@ -165,13 +167,23 @@ initLCD:
     in r24, CtrlDDR     ; switch control port to output
     ori r24, CtrlOut
     out CtrlDDR, r24
-
+.ifndef __KS0066__
     _DELAY_US 15000
     _DP_CTRL 0x30
     _DELAY_US 4100
     _DP_CTRL 0x30
     _DELAY_US 100
-	_DP_CTRL 0x30
+    _DP_CTRL 0x30
+.else
+    _DELAY_US 40000
+    _DP_CTRL 0x30
+    _DELAY_US 40
+    _DP_CTRL 0x08
+    _DELAY_US 40
+    _DP_CTRL 0x01
+    _DELAY_US 15300
+    _DP_CTRL 0x04
+.endif
 .ifdef __4BIT__
     _DP_CTRL 0x20
     _DP_CTRL _4bit
