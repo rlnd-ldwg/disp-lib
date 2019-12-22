@@ -1,7 +1,7 @@
 {
-  "name": "LCD/LED library",
-  "version": "1.2.3",
-  "keywords": "hd44780, ks0066, max7221, lcd, led, display",
+  "name": "LCD-library",
+  "version": "1.2.4",
+  "keywords": "hd44780, ks0066, (max7221), lcd, (led), display",
   "description": "Display library for HD44780 kompatible displays, supports 4/8 bit and 3 wire serial interface",
   "platforms": "atmelavr, atmelmegaavr",
   "repository":

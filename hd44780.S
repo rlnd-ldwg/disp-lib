@@ -15,13 +15,18 @@
 ; with this program; if not, write to the Free Software Foundation, Inc.,
 ; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-.version "1.2.3 2019-12-13"
+.version "1.2.4 2019-12-22"
 
+;.include "/Users/roland/Projects/lib/utils/utils.S"
+
+;.set __INFO__, true             ; include "libinfo" function
 .set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
 ;.set __3WIRE__, true            ; if set the 3-wire interface (74xx164) will be used
+.set __USE_FLASH__, true        ; use flash memory as source for "newCHR" (this will save your RAM)
 
 .set __ATMEGA8__, true
+;.set __AVR_ATmega8__, true
 ;.set __ATMega328__, true
 ;.set __DEBUG__, true
 
@@ -42,7 +47,7 @@
     .equ DataIn,  0x00
 .endif
 
-.equ __F_CPU, 12000000
+;.equ __F_CPU, 12000000
 .equ _CTRL, 0
 .equ _DATA, 1
 
@@ -63,10 +68,10 @@
 .endif
 
 ; AVR register
-.ifdef __ATMEGA8__
+.ifdef __ATMEGA8__  ;__AVR_ATmega8__ ; __AVR_ATmega8__
     .include "/Users/roland/Projects/inc/m8def.inc"
 .else
-.ifdef __ATMega328__    ; ATMega32u4
+.ifdef __ATMega328__    ; __AVR_ATmega32U4__ __AVR_ATmega328__ __AVR_ATmega324P__
     .include "/Users/roland/Projects/inc/m328def.inc"
 .endif
 .endif
@@ -80,11 +85,12 @@
 .equ CtrlRead, PINC
 
 ;calculate counter for delay loop
-.ifndef __F_CPU                             ; if not set
-    .equ __F_CPU, 12000000                  ; set to 12MHz systemclock
-.endif
-.equ Cfactor, 2                             ; correction factor
-.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
+;.ifndef __F_CPU                             ; if not set
+;    .equ __F_CPU, 12000000                  ; set to 12MHz systemclock
+;.endif
+
+;.equ Cfactor, 2                             ; correction factor
+;.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
 
 ; init parameters
 .equ _4bit,  0b00101000 ; 4 bit, multiple lines, 5x7
@@ -93,24 +99,6 @@
 .equ dpctrl, 0b00001100 ; display on, cursor off, blink off
 
 .data
-
-Version:
-    .asciz "1.2.3 2019-12-13"
-
-Mode:
-.ifdef __4BIT__
-    .ifndef __USE_4TO7__
-        .asciz "4 bit mode (0-3)"
-    .else
-        .asciz "4 bit mode (4-7)"
-    .endif
-.else
-    .ifdef __3WIRE__
-        .asciz "3 wire interface"
-    .else
-        .asciz "8 bit mode (0-7)"
-    .endif
-.endif
 
 .macro _DELAY_MS ms
     ldi r24, lo8(\ms)
@@ -142,10 +130,32 @@ Mode:
     rcall writeLCD
 .endm
 
-LineAddress:
-    .byte 0x00, 0x40, 0x10, 0x50    ; line # 1, 2, 3, 4 (16x?)
+
+.data
+.ifdef __INFO__
+Version:
+    .asciz "1.2.4 2019-12-22"
+
+Mode:
+    .ifdef __4BIT__
+        .ifndef __USE_4TO7__
+            .asciz "4 bit mode (0-3)"
+        .else
+            .asciz "4 bit mode (4-7)"
+        .endif
+    .else
+        .ifdef __3WIRE__
+            .asciz "3 wire interface"
+        .else
+            .asciz "8 bit mode (0-7)"
+        .endif
+    .endif
+.endif
 
 .text
+
+LineAddress:
+    .byte 0x00, 0x40, 0x10, 0x50    ; line # 1, 2, 3, 4 (16x?)
 
 .global initLCD
 .func initLCD           ; void initLCD(void)
@@ -178,27 +188,29 @@ initLCD:
     ret
 .endfunc                ; initLCD
 
-.global libinfo
-.func libinfo           ; void libinfo(void)
+.ifdef __INFO__
+    .global libinfo
+    .func libinfo           ; void libinfo(void)
 
-libinfo:
-    push r25
-    push r24
-    push r22
+    libinfo:
+        push r25
+        push r24
+        push r22
 
-    _DP_CTRL clear
-    _PRINT Version
-    _DELAY_MS 1500
-    _DP_CTRL clear
-    _PRINT Mode
-    _DELAY_MS 1500
-    _DP_CTRL clear
+        _DP_CTRL clear
+        _PRINT Version
+        _DELAY_MS 1500
+        _DP_CTRL clear
+        _PRINT Mode
+        _DELAY_MS 1500
+        _DP_CTRL clear
 
-    pop r22
-    pop r24
-    pop r25
-    ret
-.endfunc                ; libinfo
+        pop r22
+        pop r24
+        pop r25
+        ret
+    .endfunc                ; libinfo
+.endif
 
 .global writeLCD
 .func writeLCD          ; void writeLCD(char rs -> r24, char data -> r22)
@@ -223,8 +235,7 @@ selectDataW:
     sbi CtrlWrite, _RS
 selectCtrlW:
 
-    cbi CtrlWrite, _RW
-
+    cbi CtrlWrite, _RW  ; set write mode
     in r26, DataDDR     ; switch data port to output
     ori r26, DataOut
     out DataDDR, r26
@@ -356,7 +367,8 @@ printxyLCD:
     add r30, r22        ; calculate lineaddress
     clr r22
     adc r31, r22        ; add carry if neccesarry
-    ld r22, Z           ; lineaddress -> r22
+;    ld r22, Z           ; lineaddress -> r22
+    lpm r22, Z           ; lineaddress -> r22
     add r22, r24        ; lineaddress + column (r24)
     clr r24             ; write control
     ori r22, 0x80       ; set DDRAM address
@@ -408,7 +420,11 @@ newCHR:
     mov r22, r23    ; CGRAM address
     rcall writeLCD
     ldi r24, 0x01   ; RS - data
+.ifdef __USE_FLASH__
+    lpm r22, Z+     ; character[Z] -> r22
+.else
     ld r22, Z+      ; character[Z] -> r22
+.endif
     rcall writeLCD
     inc r23         ; CGRAM address counter
     dec r25
@@ -417,44 +433,44 @@ newCHR:
     pop r25
     ret
 .endfunc                ; newCHR
-
-.global mswait
-.func mswait            ; void mswait(const int ms -> r24:r25)
-
-mswait:
-    push r26        ; save register
-    push r27
-l3: sbiw r24, 1     ; decrement double register
-    brcc l1         ; wait 1 ms
-    pop r27
-    pop r26
-    ret
-l1: nop
-    ldi     r26, lo8(Dloop)
-    ldi     r27, hi8(Dloop)
-l2: sbiw    r26, 1
-    brne    l2
-    rjmp l3
-.endfunc                ; mswait
-
-.global uswait
-.func uswait            ; void uswait(int us -> r24:r25)
-
-uswait:
-    ;ldi r24, 1     ; 1
-    ;ldi r25, 0     ; 1
-    ;rcall uswait   ; 3
-    sbiw r24, 1     ; 2
-    brne l4         ; 1 / 2
-    ret             ; 4
-l4: nop             ; 1
-    nop
-    nop
-    nop
-    nop
-    nop
-    rjmp uswait     ; 2
-.endfunc                ; uswait
+;
+; .global mswait
+; .func mswait            ; void mswait(const int ms -> r24:r25)
+;
+; mswait:
+;     push r26        ; save register
+;     push r27
+; l3: sbiw r24, 1     ; decrement double register
+;     brcc l1         ; wait 1 ms
+;     pop r27
+;     pop r26
+;     ret
+; l1: nop
+;     ldi     r26, lo8(Dloop)
+;     ldi     r27, hi8(Dloop)
+; l2: sbiw    r26, 1
+;     brne    l2
+;     rjmp l3
+; .endfunc                ; mswait
+;
+; .global uswait
+; .func uswait            ; void uswait(int us -> r24:r25)
+;
+; uswait:
+;     ;ldi r24, 1     ; 1
+;     ;ldi r25, 0     ; 1
+;     ;rcall uswait   ; 3
+;     sbiw r24, 1     ; 2
+;     brne l4         ; 1 / 2
+;     ret             ; 4
+; l4: nop             ; 1
+;     nop
+;     nop
+;     nop
+;     nop
+;     nop
+;     rjmp uswait     ; 2
+; .endfunc                ; uswait
 
 .local wait
 wait:
