@@ -9,4 +9,6 @@
 - 2019-12-11 v1.2.0 error correction 4 bit mode, new function printxyLCD
 - 2019-12-12 v1.2.1 new functions uswait, newCHR
 - 2019-12-13 v1.2.2 source code improvements
+- 2019-12-13 v1.2.3 timing changes
+- 2019-12-22 v1.2.4 libinfo can be excluded to save memory, optional use of flash for character definition (newCHR), delay function outsourced (delay.S)
 </pre>

@@ -16,7 +16,8 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#define version "1.2.3 2019-12-13"
+#define version "1.2.4 2019-12-22"
+//#define __INFO__
 
 #ifndef HD44780_h
 #define HD44780_h
@@ -44,7 +45,9 @@ extern "C" {
     #define _LCDCTRL (cmd) writeLCD(_CTRL, cmd | _DPCTRL)	// cmd = _DPON | _CUON | _BLON
 
     extern void initLCD(void);
+#ifdef __INFO__
     extern void libinfo(void);
+#endif
     extern void writeLCD(char rs, char data);
     extern void printxyLCD(char x, char y, const char *text);
     extern void printLCD(const char *text);
