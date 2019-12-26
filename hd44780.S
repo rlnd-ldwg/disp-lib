@@ -15,19 +15,49 @@
 ; with this program; if not, write to the Free Software Foundation, Inc.,
 ; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-.version "1.2.4 2019-12-22"
+; v1.2.5 2019-12-26
+; for complete history see HISTORY.md
 
-;.set __KS0066__ , true                ; KS0066 kompatibles interface
+;---------------------------- user parameter area -------------------------------
+
+; include appropriate file
+; you can convert the files from https://github.com/DarkSector/AVR/tree/master/asm/include using atmel2gnu.py
+.include "/Users/roland/Projects/inc/tn13def.inc"
+;.include "/Users/roland/Projects/inc/m8def.inc"
+;.include "/Users/roland/Projects/inc/m328def.inc"
+
 ;.set __INFO__, true             ; include "libinfo" function
 ;.set __4BIT__, true             ; if set the 4-bit interface of the display will be used
 ;.set __USE_4TO7__, true         ; if set the upper 4 bits (4-7) of the specified port will be used
-;.set __3WIRE__, true            ; if set the 3-wire interface (74xx164) will be used
+.set __3WIRE__, true            ; if set the 3-wire interface (74xx164) will be used
 .set __USE_FLASH__, true        ; use flash memory as source for "newCHR" (this will save your RAM)
+.set __1LINE_LCD__, true        ; set this for lcd's with only one line
 
-.set __ATMEGA8__, true
-;.set __AVR_ATmega8__, true
-;.set __ATMega328__, true
-;.set __DEBUG__, true
+; port definition
+.equ DataDDR, DDRB
+.equ DataWrite, PORTB
+.equ DataRead, PINB
+.equ CtrlDDR, DDRB
+.equ CtrlWrite, PORTB
+.equ CtrlRead, PINB
+
+; define control bits
+.equ _RS, 1     ; register select: data=1, control=0
+.equ _RW, 7     ; read/write: read=1, write=0
+.equ _EN, 2     ; enable: falling edge
+; only for 3-wire interface
+.equ _SD, _RS   ; serial data (shared with lcd register select)
+.equ _SC, 4     ; serial clock, RW bit can be used
+;--------------------------------------------------------------------------------
+
+; for 3-wire interface (using 8-bit shift register 74xx164)
+.ifdef __3WIRE__
+    .warning "3-wire version: no display reading possible"
+    .equ CtrlOut, (1<<_RS | 1<<_EN | 1<<_SC)   ; pattern for DDR control port
+.else
+    .equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN)   ; pattern for DDR control port
+    .equ _BUSY, 7                              ; displays busy flag
+.endif
 
 .ifdef __4BIT__                 ; pattern for DDR data port
     .warning "4-bit version: pins D0-D3 need pulldown to ground"
@@ -46,42 +76,9 @@
     .equ DataIn,  0x00
 .endif
 
-;.equ __F_CPU, 12000000
 .equ _CTRL, 0
 .equ _DATA, 1
 
-; define control bits
-.equ _RS, 3     ; register select: data=1, control=0
-.equ _RW, 4     ; read/write: read=1, write=0
-.equ _EN, 5     ; enable: falling edge
-
-; for 3-wire interface (using 8-bit shift register 74xx164)
-.ifdef __3WIRE__
-    .warning "3-wire version: no display reading possible"
-    .equ _SD, _RS       ; serial data (shared with lcd register select)
-    .equ _SC, 2         ; serial clock, RW bit can be used
-    .equ CtrlOut, (1<<_RS | 1<<_EN | 1<<_SD | 1<<_SC)   ; pattern for DDR control port
-.else
-    .equ CtrlOut, (1<<_RS | 1<<_RW | 1<<_EN)            ; pattern for DDR control port
-    .equ _BUSY, 7                                       ; displays busy flag
-.endif
-
-; AVR register
-.ifdef __ATMEGA8__  ;__AVR_ATmega8__ ; __AVR_ATmega8__
-    .include "/Users/roland/Projects/inc/m8def.inc"
-.else
-.ifdef __ATMega328__    ; __AVR_ATmega32U4__ __AVR_ATmega328__ __AVR_ATmega324P__
-    .include "/Users/roland/Projects/inc/m328def.inc"
-.endif
-.endif
-
-; port redefinition for better readability
-.equ DataDDR, DDRD
-.equ DataWrite, PORTD
-.equ DataRead, PIND
-.equ CtrlDDR, DDRC
-.equ CtrlWrite, PORTC
-.equ CtrlRead, PINC
 
 ;calculate counter for delay loop
 ;.ifndef __F_CPU                             ; if not set
@@ -92,14 +89,17 @@
 ;.equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
 
 ; init parameters
-.equ _4bit,  0b00100000 ; 4 bit, one line, 5x7
-;.equ _4bit,  0b00101000 ; 4 bit, multiple lines, 5x7
-;.equ _8bit,  0b00110000 ; 8 bit, one line, 5x7
-.equ _8bit,  0b00111000 ; 8 bit, multiple lines, 5x7
+.ifdef __1LINE_LCD__
+    .equ _4bit,  0b00100000 ; 4 bit, one line, 5x7
+    .equ _8bit,  0b00110000 ; 8 bit, one line, 5x7
+.else
+    .equ _4bit,  0b00101000 ; 4 bit, multiple lines, 5x7
+    .equ _8bit,  0b00111000 ; 8 bit, multiple lines, 5x7
+.endif
 .equ clear,  0b00000001 ; clear display
 .equ dpctrl, 0b00001100 ; display on, cursor off, blink off
 
-.data
+; macro section
 
 .macro _DELAY_MS ms
     ldi r24, lo8(\ms)
@@ -108,9 +108,9 @@
 .endm
 
 .macro _DELAY_US us     ; only correct for 12 MHz
-	ldi r24, lo8(\us)
-	ldi r25, hi8(\us)
-	rcall uswait
+    ldi r24, lo8(\us)
+    ldi r25, hi8(\us)
+    rcall uswait
 .endm
 
 .macro _DP_CTRL cmd
@@ -130,7 +130,6 @@
     ldi r22, 0x01
     rcall writeLCD
 .endm
-
 
 .data
 .ifdef __INFO__
@@ -167,23 +166,13 @@ initLCD:
     in r24, CtrlDDR     ; switch control port to output
     ori r24, CtrlOut
     out CtrlDDR, r24
-.ifndef __KS0066__
+
     _DELAY_US 15000
     _DP_CTRL 0x30
     _DELAY_US 4100
     _DP_CTRL 0x30
     _DELAY_US 100
     _DP_CTRL 0x30
-.else
-    _DELAY_US 40000
-    _DP_CTRL 0x30
-    _DELAY_US 40
-    _DP_CTRL 0x08
-    _DELAY_US 40
-    _DP_CTRL 0x01
-    _DELAY_US 15300
-    _DP_CTRL 0x04
-.endif
 .ifdef __4BIT__
     _DP_CTRL 0x20
     _DP_CTRL _4bit
@@ -443,44 +432,6 @@ newCHR:
     pop r25
     ret
 .endfunc                ; newCHR
-;
-; .global mswait
-; .func mswait            ; void mswait(const int ms -> r24:r25)
-;
-; mswait:
-;     push r26        ; save register
-;     push r27
-; l3: sbiw r24, 1     ; decrement double register
-;     brcc l1         ; wait 1 ms
-;     pop r27
-;     pop r26
-;     ret
-; l1: nop
-;     ldi     r26, lo8(Dloop)
-;     ldi     r27, hi8(Dloop)
-; l2: sbiw    r26, 1
-;     brne    l2
-;     rjmp l3
-; .endfunc                ; mswait
-;
-; .global uswait
-; .func uswait            ; void uswait(int us -> r24:r25)
-;
-; uswait:
-;     ;ldi r24, 1     ; 1
-;     ;ldi r25, 0     ; 1
-;     ;rcall uswait   ; 3
-;     sbiw r24, 1     ; 2
-;     brne l4         ; 1 / 2
-;     ret             ; 4
-; l4: nop             ; 1
-;     nop
-;     nop
-;     nop
-;     nop
-;     nop
-;     rjmp uswait     ; 2
-; .endfunc                ; uswait
 
 .local wait
 wait:
