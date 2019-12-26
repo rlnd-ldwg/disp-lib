@@ -11,4 +11,5 @@
 - 2019-12-13 v1.2.2 source code improvements
 - 2019-12-13 v1.2.3 timing changes
 - 2019-12-22 v1.2.4 libinfo can be excluded to save memory, optional use of flash for character definition (newCHR), delay function outsourced (delay.S)
+- 2019-12-26 v1.2.5 parameter area revised
 </pre>

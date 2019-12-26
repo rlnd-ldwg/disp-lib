@@ -77,5 +77,4 @@ Same as above but waits for **us** microseconds (currently only accurate at 12MH
 Internal wait for some display functions.
 
 ### planned
-* better support für AVR port description (maybe include files?)
 * more accurate calculation for mswait
