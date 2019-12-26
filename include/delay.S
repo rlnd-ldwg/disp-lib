@@ -19,23 +19,11 @@
 
 ; calculate counter for delay loop
 .ifndef __F_CPU                             ; if not set
-    .equ __F_CPU, 12000000                  ; set to 12MHz systemclock
+    .equ __F_CPU, 6000000 ;  12000000                  ; set to 12MHz systemclock
 .endif
 
 .equ Cfactor, 2                             ; correction factor
 .equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
-
-.macro _DELAY_MS ms
-    ldi r24, lo8(\ms)
-    ldi r25, hi8(\ms)
-    rcall mswait
-.endm
-
-.macro _DELAY_US us			; only correct for 12 MHz
-	ldi r24, lo8(\us)
-	ldi r25, hi8(\us)
-	rcall uswait
-.endm
 
 .text
 
@@ -72,8 +60,8 @@ l4: nop             ; 1
     nop
     nop
     nop
-    nop
-    nop
+;    nop
+;    nop
     rjmp uswait     ; 2
 .endfunc            ; uswait
 
