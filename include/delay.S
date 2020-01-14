@@ -35,7 +35,7 @@
 .equ Dloop, (__F_CPU / 4 / 1000) - Cfactor  ; loop counter
 
 .if (__F_CPU == 6000000)        ; clock 6MHz
-.warning "6MHz"
+    .warning "6MHz"
     .macro _DELAY_US us
     .if (\us - 1)
         .set cycles, (\us - 1)
@@ -51,10 +51,8 @@
         nop
     .endif
     .endm
-; .else
-; .if
 .elseif (__F_CPU >= 12000000)   ; clock 12MHz+
-.warning "12MHz+"
+    .warning "12MHz+"
     .macro _DELAY_US us
         ldi r24, lo8(\us)
         ldi r25, hi8(\us)
@@ -142,30 +140,3 @@ l2:
 
 	rjmp l3			; 2
 .endfunc                ; mswait
-
-; --------------
-;
-;     push r26        ; save register
-;     push r27
-; l3: sbiw r24, 1     ; decrement double register
-;     brcc l1         ; wait 1 ms
-;     pop r27
-;     pop r26
-;     ret
-; l1: nop
-;     ldi     r26, lo8(Dloop)
-;     ldi     r27, hi8(Dloop)
-; l2: sbiw    r26, 1
-;     brne    l2
-;     rjmp l3
-; .endfunc                ; mswait
-;
-; .local wait
-; wait:
-; ;   rcall wait          ; 3
-;     push r22
-;     pop r22
-;     ret                 ; 4
-; 7 cyles * 50ns (at 20MHz) equates 350ns
-
-;.end
