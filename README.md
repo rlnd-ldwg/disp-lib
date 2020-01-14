@@ -71,10 +71,8 @@ The example shows a battery :wink:.
 This functions waits for **ms** milliseconds.
 
 #### uswait(int us)
-Same as above but waits for **us** microseconds (currently only accurate at 12MHz).
+Same as above but waits for **us** microseconds.
 
 #### wait (local hd44780.S)
 Internal wait for some display functions.
 
-### planned
-* more accurate calculation for mswait
