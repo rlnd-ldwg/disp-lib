@@ -16,7 +16,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#define version "1.2.4 2019-12-22"
+// version "1.2.4 2019-12-22"
 //#define __INFO__
 
 #ifndef HD44780_h
@@ -53,8 +53,8 @@ extern "C" {
     extern void printLCD(const char *text);
     extern char readLCD(char rs);
     extern void newCHR(char addr, const char *character);
-    extern void mswait(int ms);
-    extern void uswait(int us);
+//    extern void mswait(int ms);
+//    extern void uswait(int us);
 
 #ifdef __cplusplus
 }

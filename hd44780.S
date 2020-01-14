@@ -15,14 +15,17 @@
 ; with this program; if not, write to the Free Software Foundation, Inc.,
 ; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-; v1.2.5 2019-12-26
+; v1.2.6 2020-01-14
 ; for complete history see HISTORY.md
 
 ;---------------------------- user parameter area -------------------------------
-
 ; include appropriate file
 ; you can convert the files from https://github.com/DarkSector/AVR/tree/master/asm/include using atmel2gnu.py
-.include "/Users/roland/Projects/inc/tn13def.inc"
+
+.include "../inc/tn13def.inc"
+.set __F_CPU, 12000000
+.include "/Users/roland/Projects/lib/disp-lib/include/delay.S"
+
 ;.include "/Users/roland/Projects/inc/m8def.inc"
 ;.include "/Users/roland/Projects/inc/m328def.inc"
 
@@ -101,18 +104,6 @@
 
 ; macro section
 
-.macro _DELAY_MS ms
-    ldi r24, lo8(\ms)
-    ldi r25, hi8(\ms)
-    rcall mswait
-.endm
-
-.macro _DELAY_US us     ; only correct for 12 MHz
-    ldi r24, lo8(\us)
-    ldi r25, hi8(\us)
-    rcall uswait
-.endm
-
 .macro _DP_CTRL cmd
     ldi r22, \cmd
     clr r24
@@ -134,7 +125,7 @@
 .data
 .ifdef __INFO__
 Version:
-    .asciz "1.2.4 2019-12-22"
+    .asciz "1.2.6 2020-01-14"
 Mode:
     .ifdef __4BIT__
         .ifndef __USE_4TO7__
