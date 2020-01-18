@@ -23,8 +23,8 @@
 ; you can convert the files from https://github.com/DarkSector/AVR/tree/master/asm/include using atmel2gnu.py
 
 .include "../inc/tn13def.inc"
-.set __F_CPU, 12000000
-.include "/Users/roland/Projects/lib/disp-lib/include/delay.S"
+;.set __F_CPU, 12000000
+#include "delay.asm"
 
 ;.include "/Users/roland/Projects/inc/m8def.inc"
 ;.include "/Users/roland/Projects/inc/m328def.inc"

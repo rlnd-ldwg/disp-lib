@@ -53,8 +53,6 @@ extern "C" {
     extern void printLCD(const char *text);
     extern char readLCD(char rs);
     extern void newCHR(char addr, const char *character);
-//    extern void mswait(int ms);
-//    extern void uswait(int us);
 
 #ifdef __cplusplus
 }

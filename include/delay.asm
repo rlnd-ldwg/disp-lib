@@ -20,15 +20,13 @@
 .print "v0.1.0 2019-12-21"
 
 ; AVR register
-;.include "/Users/roland/Projects/inc/m8def.inc"
-;.include "/Users/roland/Projects/inc/m328def.inc"
-.include "/Users/roland/Projects/inc/tn13def.inc"
-
-
+;.include "../inc/m8def.inc"
+;.include "../inc/m328def.inc"
+.include "../inc/tn13def.inc"
 
 ;calculate counter for delay loop
 .ifndef __F_CPU                            ; if not set
-    .equ __F_CPU, 6000000                  ; set to 6MHz systemclock
+    .equ __F_CPU, 12000000                  ; set to 12MHz systemclock
 .endif
 
 .equ Cfactor, 2                             ; correction factor

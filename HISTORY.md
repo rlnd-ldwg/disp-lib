@@ -13,4 +13,5 @@
 - 2019-12-22 v1.2.4 libinfo can be excluded to save memory, optional use of flash for character definition (newCHR), delay function outsourced (delay.S)
 - 2019-12-26 v1.2.5 parameter area revised
 - 2020-01-14 v1.2.6 delay routines as include, more precise timing
+- 2020-01-18 v1.2.7 minor source code adjustments / LibreOffice Calc-Sheet to calculate the correction factor
 </pre>
