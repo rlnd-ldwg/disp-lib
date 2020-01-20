@@ -69,10 +69,15 @@ The example shows a battery :wink:.
 
 #### mswait(int ms)
 This functions waits for **ms** milliseconds.
+You can adapt the settings in include/delay.asm, to find the best values DelayCalc.ods can help you.
+Simply enter the cpu frequency and the desired delay,
+the best correction factor can then be found out by trial and error.
+Hint: Look at the field with the deviation.
+
+Note: The sheet is locked, values can only be entered in the green fields.
 
 #### uswait(int us)
 Same as above but waits for **us** microseconds.
 
 #### wait (local hd44780.S)
 Internal wait for some display functions.
-
