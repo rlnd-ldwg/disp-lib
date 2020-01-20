@@ -68,7 +68,7 @@ char data[] = {0x0e, 0x1f, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1f};
 The example shows a battery :wink:.
 
 #### mswait(int ms)
-This functions waits for **ms** milliseconds.
+This functions waits for **ms** milliseconds.  
 You can adapt the settings in include/delay.asm, to find the best values DelayCalc.ods can help you.
 Simply enter the cpu frequency and the desired delay,
 the best correction factor can then be found out by trial and error.
