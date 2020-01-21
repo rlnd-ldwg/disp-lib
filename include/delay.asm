@@ -19,11 +19,6 @@
 
 .print "v0.1.1 2020-01-20"
 
-; AVR register
-;.include "../inc/m8def.inc"
-;.include "../inc/m328def.inc"
-.include "../inc/tn13def.inc"
-
 ;calculate counter for delay loop
 .ifndef __F_CPU                             ; if not set
     .equ __F_CPU, 12000000                  ; set to 12MHz systemclock

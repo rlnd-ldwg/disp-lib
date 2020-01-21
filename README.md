@@ -78,7 +78,9 @@ Hint: Look at the field with the deviation.
 Note: The sheet is locked, values can only be entered in the green fields.
 
 #### uswait(int us)
-Same as above but waits for **us** microseconds.
+Same as above but waits for **us** microseconds.  
+
+This function works only with 6, 12, 16 and 20 MHz correct.
 
 #### wait (local hd44780.S)
 Internal wait for some display functions.
