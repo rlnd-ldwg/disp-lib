@@ -16,18 +16,33 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-// version "1.2.4 2019-12-22"
-#define __INFO__
+// version "0.1.0 2020-11-11"
+//#define __INFO__
 
-#ifndef HD44780_h
-#define HD44780_h
+#ifndef MAX72xx_h
+  #define MAX72xx_h
 #ifdef __cplusplus
-extern "C" {
+  extern "C" {
 #endif
 
-// register select value
-    #define _CTRL 0
-    #define _DATA 1
+// hexadecimal values
+    #define HEX0 0x7e
+    #define HEX1 0x30
+    #define HEX2 0x6d
+    #define HEX3 0x79
+    #define HEX4 0x33
+    #define HEX5 0x5b
+    #define HEX6 0x5f
+    #define HEX7 0x70
+    #define HEX8 0x7f
+    #define HEX9 0x7b
+    #define HEXA 0x77
+    #define HEXB 0x1f
+    #define HEXC 0x4e
+    #define HEXD 0x3d
+    #define HEXE 0x4f
+    #define HEXF 0x47
+    #define DASH 0x01
 
 // LCD control values
     #define _NULL	0b00000000		// dummy
@@ -40,22 +55,22 @@ extern "C" {
     #define _CGRAM  0b01000000      // character RAM address
     #define _DDRAM  0b10000000      // display RAM address
 
-    #define _LCDHOME writeLCD(_CTRL, _HOME)
-    #define _LCDCLEAR writeLCD(_CTRL, _CLEAR)
-    #define _LCDCTRL (cmd) writeLCD(_CTRL, cmd | _DPCTRL)	// cmd = _DPON | _CUON | _BLON
-
-    extern void initLCD(void);
-#ifdef __INFO__
-    extern void libinfo(void);
-#endif
-    extern void writeLCD(char rs, char data);
-    extern void printxyLCD(char x, char y, const char *text);
-    extern void printLCD(const char *text);
-    extern char readLCD(char rs);
-    extern void newCHR(char addr, const char *character);
+//     #define _LCDHOME writeLCD(_CTRL, _HOME)
+//     #define _LCDCLEAR writeLCD(_CTRL, _CLEAR)
+//     #define _LCDCTRL (cmd) writeLCD(_CTRL, cmd | _DPCTRL)	// cmd = _DPON | _CUON | _BLON
+//
+     extern void initLED(void);
+// #ifdef __INFO__
+//     extern void libinfo(void);
+// #endif
+    extern void writeLED(char reg, char data);
+    // extern void printxyLCD(char x, char y, const char *text);
+    // extern void printLCD(const char *text);
+    // extern char readLCD(char rs);
+    // extern void newCHR(char addr, const char *character);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

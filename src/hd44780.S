@@ -262,7 +262,7 @@ selectCtrlW:
     ldi r24, 2         ; no busy flag, wait 2ms
     clr r25
     rcall mswait
-
+; ************************* using hardware SPI
     ldi r26, 8          ; shift 8 bit
 .shiftloop:
     cbi CtrlWrite, _SC  ; set clock to low
